@@ -59,6 +59,9 @@ class SimulationRequest(BaseModel):
     max_positions: int = Field(default=20, ge=1, le=50)
     max_picks_per_day: int = Field(default=0, ge=0, le=50)
     sectors: Optional[List[str]] = None
+    # transaction costs
+    brokerage_per_leg: float = Field(default=20.0, ge=0, le=1000)
+    cost_pct_per_leg: float = Field(default=0.15, ge=0, le=2)
 
 
 class StrategySpec(BaseModel):
@@ -78,6 +81,8 @@ class StrategySpec(BaseModel):
     max_positions: int = 20
     max_picks_per_day: int = 0
     sectors: Optional[List[str]] = None
+    brokerage_per_leg: float = 20.0
+    cost_pct_per_leg: float = 0.15
 
 
 class CompareRequest(BaseModel):
@@ -178,6 +183,8 @@ async def simulate(req: SimulationRequest):
             max_positions=req.max_positions,
             max_picks_per_day=req.max_picks_per_day,
             sectors=req.sectors,
+            brokerage_per_leg=req.brokerage_per_leg,
+            cost_pct_per_leg=req.cost_pct_per_leg,
         )
     except Exception as e:
         logger.exception("simulation failed")

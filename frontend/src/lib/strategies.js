@@ -90,4 +90,7 @@ export const DEFAULT_FILTERS = {
   max_positions: 20,
   max_picks_per_day: 5,
   sectors: [],
+  // transaction costs
+  brokerage_per_leg: 20,
+  cost_pct_per_leg: 0.15,
 };

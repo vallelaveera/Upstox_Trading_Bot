@@ -1,4 +1,4 @@
-import { Sliders, Funnel, Target, Stack, Clock, Crosshair } from "@phosphor-icons/react";
+import { Sliders, Funnel, Target, Stack, Clock, Crosshair, Receipt } from "@phosphor-icons/react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -420,6 +420,68 @@ export default function FiltersPanel({ filters, setFilters, sectors, disabled })
           </DropdownMenuContent>
         </DropdownMenu>
       </Field>
+
+      {/* Transaction Costs */}
+      <div className="pt-4 border-t border-white/5 space-y-5">
+        <div className="flex items-center gap-2">
+          <Receipt size={14} weight="duotone" className="text-[#FF6EC7]" />
+          <Label className="text-[11px] font-semibold text-neutral-400 uppercase tracking-[0.18em]">
+            Transaction Costs
+          </Label>
+        </div>
+        <div className="text-[11px] text-neutral-500 leading-relaxed -mt-3">
+          Realistic NSE delivery costs · ~₹20 brokerage + 0.15% taxes/slippage per leg.
+        </div>
+        <SliderField
+          label="Brokerage / leg (₹)"
+          hint={`₹${filters.brokerage_per_leg}`}
+          value={filters.brokerage_per_leg}
+          min={0}
+          max={100}
+          step={1}
+          onChange={(v) => update("brokerage_per_leg", v)}
+          disabled={disabled}
+          testid="brokerage-per-leg"
+          accent="#FF6EC7"
+        />
+        <SliderField
+          label="Tax + Slippage / leg"
+          hint={`${filters.cost_pct_per_leg}%`}
+          value={filters.cost_pct_per_leg}
+          min={0}
+          max={1}
+          step={0.05}
+          onChange={(v) => update("cost_pct_per_leg", v)}
+          disabled={disabled}
+          testid="cost-pct-per-leg"
+          accent="#FF6EC7"
+        />
+        <div className="flex flex-wrap gap-2">
+          {[
+            { label: "Zero-broker", b: 0, p: 0.1 },
+            { label: "Realistic", b: 20, p: 0.15 },
+            { label: "Pessimistic", b: 30, p: 0.25 },
+          ].map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
+              disabled={disabled}
+              onClick={() => {
+                update("brokerage_per_leg", preset.b);
+                update("cost_pct_per_leg", preset.p);
+              }}
+              data-testid={`cost-preset-${preset.label.toLowerCase().replace("-", "")}`}
+              className={`text-[11px] font-mono px-3 py-1.5 rounded-full border transition-colors ${
+                filters.brokerage_per_leg === preset.b && filters.cost_pct_per_leg === preset.p
+                  ? "border-[#FF6EC7]/60 bg-[#FF6EC7]/10 text-[#FF6EC7]"
+                  : "border-white/10 text-neutral-400 hover:border-white/25"
+              }`}
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

@@ -206,6 +206,9 @@ def run_simulation(
     max_picks_per_day: int = 0,  # 0 = unlimited
     # filters
     sectors: Optional[List[str]] = None,
+    # transaction costs
+    brokerage_per_leg: float = 20.0,  # ₹ per buy/sell
+    cost_pct_per_leg: float = 0.15,  # % of trade value (STT+exchange+GST+stamp+slippage)
     # internal: optional shared data fetch (for /compare)
     _shared_data: Optional[pd.DataFrame] = None,
 ) -> Dict:
@@ -232,6 +235,9 @@ def run_simulation(
     closed_trades: List[Trade] = []
     open_trades: Dict[str, Trade] = {}
     equity_curve: List[Dict] = []
+    total_costs = 0.0
+    total_brokerage = 0.0
+    total_taxes_slippage = 0.0
 
     if max_picks_per_day <= 0:
         max_picks_per_day = max_positions
@@ -262,8 +268,14 @@ def run_simulation(
                 reason = "stoploss"
 
             if sell:
-                proceeds = pos.qty * price
-                pnl = proceeds - pos.invested
+                gross_proceeds = pos.qty * price
+                # apply sell-leg costs
+                sell_cost = brokerage_per_leg + (gross_proceeds * cost_pct_per_leg / 100.0)
+                proceeds = gross_proceeds - sell_cost
+                total_costs += sell_cost
+                total_brokerage += brokerage_per_leg
+                total_taxes_slippage += sell_cost - brokerage_per_leg
+                pnl = proceeds - pos.invested  # invested already includes buy-leg cost
                 cash += proceeds
                 t = open_trades.pop(sym)
                 t.sell_price = price
@@ -273,6 +285,7 @@ def run_simulation(
                 t.status = "closed"
                 t.reason = reason
                 t.holding_days = held
+                t.cost = round(sell_cost + getattr(t, "buy_cost", 0.0), 2)
                 closed_trades.append(t)
                 del positions[sym]
 
@@ -308,8 +321,16 @@ def run_simulation(
                     qty = int(math.floor(alloc / price))
                     if qty <= 0:
                         continue
-                    invested = qty * price
+                    gross_invested = qty * price
+                    # apply buy-leg costs (brokerage + slippage/exchange/stamp)
+                    buy_cost = brokerage_per_leg + (gross_invested * cost_pct_per_leg / 100.0)
+                    if cash < gross_invested + buy_cost:
+                        continue
+                    invested = gross_invested + buy_cost  # cost basis includes buy-leg cost
                     cash -= invested
+                    total_costs += buy_cost
+                    total_brokerage += brokerage_per_leg
+                    total_taxes_slippage += buy_cost - brokerage_per_leg
                     meta = meta_map[sym]
                     positions[sym] = Position(
                         symbol=sym,
@@ -330,6 +351,7 @@ def run_simulation(
                         buy_date=d_iso,
                         status="open",
                     )
+                    open_trades[sym].buy_cost = buy_cost  # type: ignore[attr-defined]
                     bought += 1
 
         # 3) mark-to-market
@@ -441,6 +463,11 @@ def run_simulation(
             "return_pct": round(return_pct, 2),
             "realized_pnl": round(realized_pnl, 2),
             "unrealized_pnl": round(unrealized_pnl, 2),
+            "gross_pnl": round(net_pnl + total_costs, 2),
+            "total_costs": round(total_costs, 2),
+            "total_brokerage": round(total_brokerage, 2),
+            "total_taxes_slippage": round(total_taxes_slippage, 2),
+            "cost_drag_pct": round((total_costs / float(capital)) * 100.0, 2),
             "total_trades": closed_count + open_count,
             "closed_trades": closed_count,
             "open_positions": open_count,
