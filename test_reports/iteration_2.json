@@ -1,0 +1,44 @@
+{
+  "summary": "v2 multi-strategy + multi-universe NSE Swing Sim tested end-to-end. Backend: 16/17 pytest pass (universes 50/100/216 verified, daily_drop default flow with new KPI fields avg_holding_days/max_drawdown_pct/exits_target/exits_stoploss/exits_time, peak_dip/weekly_drop/consecutive_down all 200, validation 400/422 correct, sectors filter, /api/compare with 3 and 5 strategies works, 6/empty rejected with 422). Frontend: app loads with daily_drop+nifty200 default, all 4 strategy buttons + 5 alloc presets + universe selector + conditional sliders work, sniper preset sets max_positions=5, Run Simulation completes (~25s on nifty50/2wk) and renders kpi-grid + EquityChart + TradesTable (with TARGET/TIME/OPEN reason badges) + OpenPositions, Compare tab loads with 3 default cards + 5 quick-add presets + add-tile, Run Compare on nifty50/2wk/3 strats completes and renders compare-results + compare-matrix with 3 rows + trophy on winner row.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/compare", "issue": "Response does NOT include top-level shared sim window keys (sim_start / sim_end). Per-strategy equity_curve has dates but the spec/review_request expected shared sim_start+sim_end at top level for the Compare response. Currently only {capital, weeks, universe, results[]} are returned. Either add sim_start/sim_end at top level (recommended) or update spec."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "EquityChart / Compare LineChart", "issues": ["Recharts emits non-fatal 'width(-1) and height(-1)' mount-time warning on first paint (carry-over from v1, present on both Run and Compare charts). Suggest aspect prop or fixed minHeight."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_simulator_v2.py",
+    "/app/backend/tests/test_simulator_api.py",
+    "/app/test_reports/pytest/v2_results.xml"
+  ],
+  "action_items": [
+    "Add sim_start and sim_end fields at top-level of /api/compare response (currently only nested in equity_curve). Spec mismatch but non-blocking since UI doesn't read them."
+  ],
+  "critical_code_review_comments": [
+    "universe.py NIFTY_MIDCAP_100 actually has 118 entries (not 100) and contains HDFCAMC duplicate with NIFTY_NEXT_50 (correctly de-duped to 216 in NIFTY_200, matches spec). Naming is misleading — consider renaming to MIDCAP_EXTRA or keep but document.",
+    "/api/compare: top-level sim_start/sim_end not included in response despite review_request spec ('shared sim window per strategy'). UI ComparePanel currently doesn't depend on it, but documentation or downstream consumer might.",
+    "ComparePanel.jsx: PRESET_STRATEGIES quick-adds use idx as key but also append to strategies — clicking the same preset twice creates duplicates with same label (no idempotency). Minor UX nit.",
+    "ComparePanel.jsx winnerIdx selection uses `r.kpis?.net_pnl` but if all strategies equal (unlikely) defaults to index 0; OK.",
+    "FiltersPanel.jsx: applyPreset clamps max_picks_per_day = min(current, p.max_positions) — good. But daily_drop_min slider step is 0.25 while backend Pydantic accepts any float ≥ 0; consistent.",
+    "server.py /api/simulate exception path: `logger.exception` is fine (logger defined at top now, fixed from v1). No issue.",
+    "simulator.py run_compare uses ONE shared yfinance fetch (efficient — 5 strats on nifty200 ~25-40s, verified). Good design.",
+    "No caching layer on yfinance — repeat /simulate or /compare hits re-download. Phase-2 suggestion."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_simulator_v2.py"
+  ],
+  "success_rate": {"backend": "94% (16/17 — 1 failure is spec/missing-field, not bug)", "frontend": "100% of v2 flows verified visually + via DOM"},
+  "test_credentials": "N/A — no auth in this app",
+  "seed_data_creation": "Multiple /api/simulate POSTs (default daily_drop, peak_dip, weekly_drop, consecutive_down, sectors, custom universes) inserted lightweight params+kpis records into MongoDB.simulations during tests. /api/compare does NOT persist (intended).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend v2 suite at /app/backend/tests/test_simulator_v2.py (17 tests, ~125s runtime), v1 suite at test_simulator_api.py still valid. JUnit XML at /app/test_reports/pytest/v2_results.xml. Universes: nifty50=50, nifty100=100, nifty200=216 stocks. /api/compare on nifty100/3-strat/3wk takes ~30s; cap timeouts at 240s. UI testid for KPI block is `kpi-grid` (NOT kpi-cards). Compare tab testid = `tab-compare`, panel = `compare-panel`, results = `compare-results`, rows = `compare-row-{i}`, winner highlighted with trophy SVG inside compare-matrix. Quick-add presets are compare-preset-0..4. Strategy cards are strategy-card-{i} and remove via strategy-remove-{i}. Run Compare uses run-compare-button. Single sim still uses run-simulation-button + kpi-grid. Frontend DEFAULT_FILTERS now = daily_drop + nifty200 + recovery_target=3.5 + stop_loss=7 + max_holding_days=4 (verified UI matches).",
+  "rca of the issue": "test_compare_three_strategies failure RCA: server.py /api/compare returns {capital, weeks, universe, results[]} only — does not bubble up sim_start/sim_end at top level even though they exist per-strategy inside equity_curve points. Test asserted top-level presence per review_request spec. Mitigation: either main agent adds these two keys (one-line fix in server.py /api/compare to extract first/last date from any results[i].equity_curve) or update spec/test."
+}

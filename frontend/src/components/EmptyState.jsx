@@ -32,20 +32,20 @@ export default function EmptyState() {
           <Step
             n="01"
             icon={ArrowDown}
-            title="Scan dips"
-            desc="Stocks fallen 5–15% off recent peak"
+            title="Scan daily drops"
+            desc="Stocks falling 2–4% in one session"
           />
           <Step
             n="02"
             icon={Lightning}
-            title="Buy bottom 20"
-            desc="Largest discount first, ₹25K per slot"
+            title="Rotate capital"
+            desc="20 slots, redeploy as winners exit"
           />
           <Step
             n="03"
             icon={ArrowUp}
-            title="Sell on rip"
-            desc="Target +8% or stop-loss −7%"
+            title="Quick exit"
+            desc="Target +3.5%, max 4-day hold"
           />
         </div>
 
