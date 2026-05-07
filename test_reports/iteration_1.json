@@ -1,0 +1,38 @@
+{
+  "summary": "Full backend + frontend testing of NSE Swing Trading Simulator. All 9 backend pytest cases pass (health, nifty50, simulate default/custom/sectors, validation 400/422, list). Frontend loads, all filter controls work, Run Simulation completes (~15-20s) and renders KPI grid, equity chart, trades table (28 rows, 87.5% win rate), open positions. No errors in console. Reset filters works.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "EquityChart", "issues": ["Recharts emits non-fatal mount-time warning 'width(-1) and height(-1) of chart should be greater than 0' on first paint while ResponsiveContainer measures. Chart still renders correctly. Consider adding minWidth/minHeight or aspect prop on ResponsiveContainer to silence the warning."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_simulator_api.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "(Optional polish) silence Recharts ResponsiveContainer width/height warning in EquityChart.jsx by setting minWidth=0/minHeight=0 or fixed aspect."
+  ],
+  "critical_code_review_comments": [
+    "server.py: logger is referenced inside /api/simulate exception handler (line 82) but `logger` is defined AFTER `app.include_router` (line 121). If a non-validation error happens before the file is fully evaluated this is fine in practice (module-level execution order makes `logger` exist by request time), but ordering is fragile — move logging.basicConfig + logger=... above the routes for clarity.",
+    "simulator.py runs synchronous yfinance batch download inside run_in_threadpool (good), but there's no caching: every /simulate hit re-downloads ~3 months of daily bars for 50 tickers. Add a TTL cache (e.g., 5–10 min) keyed on (weeks) to avoid yfinance rate-limit risk and keep p95 < 5s on repeat runs.",
+    "simulator.py per_slot = capital / max_positions allocates based on initial capital, not remaining cash. Realised gains never get redeployed at full size. Documented choice but worth noting for future Phase-2 logic.",
+    "No /api/simulations/{run_id} endpoint to fetch a saved full result (only KPIs+params are persisted). Equity_curve and trades are lost after response. If history viewing is planned, persist full result or add a fetch-by-id route.",
+    "FiltersPanel: capital Input has type='number' but no debounce; rapid typing triggers many re-renders (minor)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_simulator_api.py"
+  ],
+  "success_rate": {"backend": "100% (9/9)", "frontend": "100% of tested flows"},
+  "test_credentials": "N/A — no auth in this app",
+  "seed_data_creation": "Three /api/simulate POSTs were issued during tests; their lightweight records (params + kpis only) were inserted into MongoDB.simulations collection.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend test suite is at /app/backend/tests/test_simulator_api.py, junit XML at /app/test_reports/pytest/pytest_results.xml. Each /api/simulate call hits real yfinance; first run takes 15-25s, subsequent calls cached by yfinance ~3-5s. No mongo _id leak verified. Frontend public URL = REACT_APP_BACKEND_URL. Trades table filter dropdown options use testids `trades-filter-all|closed|open` (not `trades-filter-option-*`).",
+  "rca of the issue": "No bugs to RCA — initial test failure on `_id not in str(data)` was a test script issue (matched substring inside `run_id` key); fixed by checking for `'_id':` literal token instead."
+}

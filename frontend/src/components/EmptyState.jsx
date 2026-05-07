@@ -1,0 +1,79 @@
+import { ChartLineUp, Lightning, ShieldCheck, ArrowDown, ArrowUp } from "@phosphor-icons/react";
+
+export default function EmptyState() {
+  return (
+    <div
+      className="relative bg-[#0c0c0c] border border-white/10 rounded-2xl p-8 md:p-14 overflow-hidden"
+      data-testid="empty-state"
+    >
+      <div className="absolute -right-32 -top-32 h-72 w-72 rounded-full bg-[#E2FF00]/5 blur-3xl" />
+      <div className="absolute -left-24 -bottom-24 h-72 w-72 rounded-full bg-[#00E676]/5 blur-3xl" />
+
+      <div className="relative z-10 max-w-2xl">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/5 mb-6">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#00E676] pulse-dot" />
+          <span className="text-[11px] font-mono uppercase tracking-widest text-neutral-300">
+            Real NSE data · Yahoo Finance
+          </span>
+        </div>
+
+        <h2 className="font-display text-3xl md:text-5xl font-black tracking-tight leading-[1.05]">
+          Backtest your <span className="text-[#E2FF00]">swing</span> strategy <br />
+          on the last <span className="font-mono">N</span> weeks of NSE.
+        </h2>
+
+        <p className="mt-5 text-neutral-400 text-sm md:text-base max-w-xl leading-relaxed">
+          Drop ₹5L of paper capital into the engine. We scan Nifty 50 daily, buy
+          stocks dipping inside your dip-band, sell on target or stop-loss. Tweak
+          the filters, then mash the yellow button.
+        </p>
+
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-3">
+          <Step
+            n="01"
+            icon={ArrowDown}
+            title="Scan dips"
+            desc="Stocks fallen 5–15% off recent peak"
+          />
+          <Step
+            n="02"
+            icon={Lightning}
+            title="Buy bottom 20"
+            desc="Largest discount first, ₹25K per slot"
+          />
+          <Step
+            n="03"
+            icon={ArrowUp}
+            title="Sell on rip"
+            desc="Target +8% or stop-loss −7%"
+          />
+        </div>
+
+        <div className="mt-8 flex items-center gap-4 text-xs text-neutral-500 font-mono">
+          <span className="flex items-center gap-1.5">
+            <ShieldCheck size={14} weight="duotone" className="text-[#00E676]" />
+            No login required
+          </span>
+          <span>·</span>
+          <span className="flex items-center gap-1.5">
+            <ChartLineUp size={14} weight="duotone" className="text-[#E2FF00]" />
+            Live market data
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Step({ n, icon: Icon, title, desc }) {
+  return (
+    <div className="bg-black/40 border border-white/10 rounded-xl p-4">
+      <div className="flex items-center justify-between mb-3">
+        <span className="font-mono text-[11px] text-neutral-500">{n}</span>
+        <Icon size={18} weight="duotone" className="text-[#E2FF00]" />
+      </div>
+      <div className="font-display font-bold text-base">{title}</div>
+      <div className="text-[12px] text-neutral-500 mt-1">{desc}</div>
+    </div>
+  );
+}
