@@ -491,6 +491,7 @@ class ScanRequest(BaseModel):
     top_n: int = Field(default=20, ge=1, le=50)
     sectors: Optional[List[str]] = None
     min_mcap_cr: float = Field(default=0.0, ge=0, le=10000000)
+    max_price: float = Field(default=0.0, ge=0, le=1000000)
 
 
 class ExecuteRequest(BaseModel):
@@ -515,6 +516,7 @@ class AutoStrategyRequest(BaseModel):
     sectors: Optional[List[str]] = None
     skip_held: bool = Field(default=True)
     min_mcap_cr: float = Field(default=0.0, ge=0, le=10000000)
+    max_price: float = Field(default=0.0, ge=0, le=1000000)
     target_pct: float = Field(default=3.0, ge=0.5, le=30)
     stop_pct: float = Field(default=4.0, ge=0.5, le=30)
     max_holding_days: int = Field(default=4, ge=1, le=30)
@@ -535,6 +537,7 @@ async def upstox_scan(req: ScanRequest):
             top_n=req.top_n,
             sectors=req.sectors,
             min_mcap_cr=req.min_mcap_cr,
+            max_price=req.max_price,
         )
     except Exception as e:
         logger.exception("scan failed")
@@ -607,6 +610,64 @@ async def upstox_swing_positions():
     return {"positions": docs, "open_count": open_count, "total_count": len(docs)}
 
 
+@api_router.get("/upstox/dashboard/fees")
+async def upstox_dashboard_fees():
+    """Estimate today's NSE delivery fees from completed orders.
+    Uses standard regulatory rates: brokerage ₹20/leg, STT 0.1% sell, exchange 0.00345%,
+    GST 18%, stamp 0.015% buy. Approximate ±5%."""
+    tok = await _require_token()
+    BROKER_PER_LEG = 20.0
+    STT_SELL = 0.001
+    EXCHANGE = 0.0000345
+    GST_RATE = 0.18
+    STAMP_BUY = 0.00015
+
+    try:
+        resp = await ux.get_orders(tok)
+        orders = resp.get("data") or []
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+    brokerage = stt = exchange = stamp = traded_value = 0.0
+    completed = 0
+    by_side = {"BUY": 0, "SELL": 0}
+    for o in orders:
+        status = (o.get("status") or "").upper()
+        if status not in ("COMPLETE", "PARTIALLY FILLED"):
+            continue
+        side = (o.get("transaction_type") or "").upper()
+        qty = o.get("filled_quantity") or o.get("quantity") or 0
+        price = o.get("average_price") or o.get("price") or 0
+        if not qty or not price:
+            continue
+        value = qty * price
+        traded_value += value
+        completed += 1
+        by_side[side] = by_side.get(side, 0) + 1
+        brokerage += BROKER_PER_LEG
+        exchange += value * EXCHANGE
+        if side == "BUY":
+            stamp += value * STAMP_BUY
+        elif side == "SELL":
+            stt += value * STT_SELL
+    gst = (brokerage + exchange) * GST_RATE
+    total = brokerage + stt + exchange + stamp + gst
+    return {
+        "completed_orders": completed,
+        "buy_count": by_side.get("BUY", 0),
+        "sell_count": by_side.get("SELL", 0),
+        "traded_value": round(traded_value, 2),
+        "brokerage": round(brokerage, 2),
+        "stt": round(stt, 2),
+        "exchange_charges": round(exchange, 2),
+        "stamp_duty": round(stamp, 2),
+        "gst": round(gst, 2),
+        "total_fees": round(total, 2),
+        "fees_pct_of_volume": round((total / traded_value * 100) if traded_value > 0 else 0, 3),
+        "note": "Approximate. Actual charges shown by Upstox in contract notes (±5%).",
+    }
+
+
 @api_router.get("/upstox/dashboard/pnl")
 async def upstox_dashboard_pnl():
     """Aggregate P&L across holdings + positions + closed swings."""
@@ -677,6 +738,7 @@ async def upstox_auto_strategy(req: AutoStrategyRequest):
             top_n=req.slots,
             sectors=req.sectors,
             min_mcap_cr=req.min_mcap_cr,
+            max_price=req.max_price,
         )
         if scan.get("error"):
             raise HTTPException(status_code=502, detail=scan["error"])

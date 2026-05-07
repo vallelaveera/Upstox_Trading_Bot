@@ -107,7 +107,8 @@ async def scan_daily_dips(
     drop_max: float = 4.0,
     top_n: int = 20,
     sectors: Optional[List[str]] = None,
-    min_mcap_cr: float = 0.0,  # filter out stocks below this market cap (in ₹ crores)
+    min_mcap_cr: float = 0.0,
+    max_price: float = 0.0,  # 0 = no limit, otherwise filter LTP <= max_price
 ) -> Dict:
     """Scan for stocks dropping `drop_min`–`drop_max`% today.
     Combines yfinance (yesterday's close) + Upstox LTP (live price)."""
@@ -189,6 +190,14 @@ async def scan_daily_dips(
         )
 
     candidates.sort(key=lambda c: c["drop_pct"], reverse=True)
+
+    # Pre-filter by price BEFORE the top_n cap — so cheap dippers aren't crowded out
+    # by expensive ones at the top of the list.
+    if max_price and max_price > 0:
+        before = len(candidates)
+        candidates = [c for c in candidates if c["ltp"] <= max_price]
+        logger.info(f"price filter ≤ ₹{max_price}: {before} → {len(candidates)}")
+
     candidates = candidates[: max(1, top_n)]
 
     # 4) fetch market caps for the (now-small) candidate list in parallel
