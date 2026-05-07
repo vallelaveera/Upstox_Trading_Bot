@@ -922,10 +922,18 @@ function HoldingsTable({ holdings, swingMap }) {
                   {totalChg >= 0 ? "+" : ""}{inrFull2(totalChg)} ({pct(totalChgPct)})
                 </Td>
                 <Td right data-testid={`to-target-${sym}`}>
-                  <DistanceCell pct={toTargetPct} price={targetPrice} kind="target" />
+                  {avg > 0 && ltp > 0 ? (
+                    <DistanceCell pct={toTargetPct} price={targetPrice} kind="target" />
+                  ) : (
+                    <span className="text-neutral-600">—</span>
+                  )}
                 </Td>
                 <Td right data-testid={`to-stop-${sym}`}>
-                  <DistanceCell pct={toStopPct} price={stopPrice} kind="stop" />
+                  {avg > 0 && ltp > 0 ? (
+                    <DistanceCell pct={toStopPct} price={stopPrice} kind="stop" />
+                  ) : (
+                    <span className="text-neutral-600">—</span>
+                  )}
                 </Td>
                 <Td right>{inrFull(value)}</Td>
               </tr>
@@ -1019,10 +1027,18 @@ function PositionsTable({ positions, swingMap }) {
                 <Td right>{inrFull2(avg)}</Td>
                 <Td right>{inrFull2(ltp)}</Td>
                 <Td right data-testid={`pos-to-target-${sym}`}>
-                  <DistanceCell pct={toTargetPct} price={targetPrice} kind="target" />
+                  {avg > 0 && ltp > 0 ? (
+                    <DistanceCell pct={toTargetPct} price={targetPrice} kind="target" />
+                  ) : (
+                    <span className="text-neutral-600">—</span>
+                  )}
                 </Td>
                 <Td right data-testid={`pos-to-stop-${sym}`}>
-                  <DistanceCell pct={toStopPct} price={stopPrice} kind="stop" />
+                  {avg > 0 && ltp > 0 ? (
+                    <DistanceCell pct={toStopPct} price={stopPrice} kind="stop" />
+                  ) : (
+                    <span className="text-neutral-600">—</span>
+                  )}
                 </Td>
                 <Td right style={{ color: pnlValue >= 0 ? "#00E676" : "#FF3B30" }} bold>
                   {pnlValue >= 0 ? "+" : ""}{inrFull2(pnlValue)}
