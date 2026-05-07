@@ -48,6 +48,8 @@ export default function LiveTrading() {
   const [holdings, setHoldings] = useState([]);
   const [positions, setPositions] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [pnl, setPnl] = useState(null);
+  const [managing, setManaging] = useState(false);
   const [params] = useSearchParams();
   const navigate = useNavigate();
 
@@ -77,22 +79,44 @@ export default function LiveTrading() {
     if (!status.connected) return;
     setLoading(true);
     try {
-      const [f, h, p, o] = await Promise.allSettled([
+      const [f, h, p, o, pl] = await Promise.allSettled([
         axios.get(`${API}/upstox/funds`),
         axios.get(`${API}/upstox/holdings`),
         axios.get(`${API}/upstox/positions`),
         axios.get(`${API}/upstox/orders`),
+        axios.get(`${API}/upstox/dashboard/pnl`),
       ]);
       if (f.status === "fulfilled") setFunds(f.value.data?.data || null);
       if (h.status === "fulfilled") setHoldings(h.value.data?.data || []);
       if (p.status === "fulfilled") setPositions(p.value.data?.data || []);
       if (o.status === "fulfilled") setOrders(o.value.data?.data || []);
+      if (pl.status === "fulfilled") setPnl(pl.value.data || null);
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
   }, [status.connected]);
+
+  const managePositions = useCallback(async () => {
+    setManaging(true);
+    try {
+      const r = await axios.post(`${API}/upstox/strategy/manage`, null, { timeout: 60000 });
+      const sold = r.data?.sold_count || 0;
+      const checked = r.data?.open_count || 0;
+      if (sold > 0) {
+        toast.success(`Time-stop sweep · sold ${sold} of ${checked} positions held ≥4 days`);
+      } else {
+        toast(`Sweep done · ${checked} open positions, none past time-stop yet`);
+      }
+      refreshAll();
+    } catch (e) {
+      const msg = e?.response?.data?.detail || e.message;
+      toast.error(`Manage failed: ${typeof msg === "string" ? msg : "unknown"}`);
+    } finally {
+      setManaging(false);
+    }
+  }, [refreshAll]);
 
   useEffect(() => {
     refreshStatus();
@@ -237,6 +261,11 @@ export default function LiveTrading() {
           </div>
         )}
 
+        {/* P&L Dashboard */}
+        {status.connected && pnl && (
+          <PnLDashboard pnl={pnl} onManage={managePositions} managing={managing} />
+        )}
+
         {!status.connected ? (
           <NotConnectedHero onConnect={connect} instrumentsLoaded={status.instruments_loaded} />
         ) : (
@@ -306,6 +335,94 @@ export default function LiveTrading() {
           </Tabs>
         )}
       </main>
+    </div>
+  );
+}
+
+function PnLDashboard({ pnl, onManage, managing }) {
+  const h = pnl.holdings || {};
+  const totalPnl = pnl.total_unrealized_pnl ?? 0;
+  const positive = totalPnl >= 0;
+  const dayPositive = (h.day_pnl ?? 0) >= 0;
+  return (
+    <div
+      className="bg-[#0c0c0c] border border-white/10 rounded-xl p-5 md:p-6"
+      data-testid="pnl-dashboard"
+    >
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+        <div className="flex items-center gap-2">
+          <Briefcase size={18} weight="duotone" className="text-[#E2FF00]" />
+          <h3 className="font-display font-bold text-lg uppercase tracking-tight">
+            Portfolio P&L
+          </h3>
+        </div>
+        <Button
+          onClick={onManage}
+          disabled={managing}
+          data-testid="manage-positions-button"
+          variant="outline"
+          className="bg-transparent border-[#E2FF00]/40 text-[#E2FF00] hover:bg-[#E2FF00]/10 hover:text-[#E2FF00]"
+        >
+          {managing ? (
+            <ArrowsClockwise size={14} weight="bold" className="mr-2 animate-spin" />
+          ) : (
+            <ShieldWarning size={14} weight="duotone" className="mr-2" />
+          )}
+          Manage Positions (4-day sweep)
+        </Button>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <PnLCard
+          label="Total Unrealized P&L"
+          value={`${positive ? "+" : ""}${inrFull(totalPnl)}`}
+          color={positive ? "#00E676" : "#FF3B30"}
+          big
+          testid="pnl-total"
+        />
+        <PnLCard
+          label="Holdings P&L"
+          value={`${(h.unrealized_pnl ?? 0) >= 0 ? "+" : ""}${inrFull(h.unrealized_pnl ?? 0)}`}
+          sub={`${pct(h.unrealized_pnl_pct ?? 0)} · ${h.count} stocks`}
+          color={(h.unrealized_pnl ?? 0) >= 0 ? "#00E676" : "#FF3B30"}
+          testid="pnl-holdings"
+        />
+        <PnLCard
+          label="Today's Δ"
+          value={`${dayPositive ? "+" : ""}${inrFull(h.day_pnl ?? 0)}`}
+          sub="Mark-to-market today"
+          color={dayPositive ? "#00E676" : "#FF3B30"}
+          testid="pnl-day"
+        />
+        <PnLCard
+          label="Invested"
+          value={inrFull(h.invested ?? 0)}
+          sub={`Value ${inrFull(h.current_value ?? 0)}`}
+          color="#A3A3A3"
+          testid="pnl-invested"
+        />
+      </div>
+    </div>
+  );
+}
+
+function PnLCard({ label, value, sub, color, big, testid }) {
+  return (
+    <div
+      className={`bg-black/40 border rounded-lg p-4 ${
+        big ? "border-[#E2FF00]/30 ring-1 ring-[#E2FF00]/10" : "border-white/10"
+      }`}
+      data-testid={testid}
+    >
+      <div className="text-[10px] font-semibold text-neutral-400 uppercase tracking-[0.18em] truncate">
+        {label}
+      </div>
+      <div
+        className={`font-mono font-bold tracking-tight mt-2 ${big ? "text-2xl" : "text-lg"}`}
+        style={{ color }}
+      >
+        {value}
+      </div>
+      {sub && <div className="text-[11px] text-neutral-500 font-mono truncate mt-1">{sub}</div>}
     </div>
   );
 }

@@ -227,10 +227,20 @@ async def execute_picks(
     candidates: List[Dict],
     capital: float,
     slots: int,
-    product: str = "D",  # CNC delivery default
+    product: str = "D",
     skip_held: bool = True,
+    target_pct: float = 3.0,
+    stop_pct: float = 4.0,
+    place_exits: bool = True,
+    max_holding_days: int = 4,
+    db=None,
 ) -> Dict:
-    """Place MARKET BUY orders for top N candidates with capital/slots allocation."""
+    """Place MARKET BUY orders for top N candidates with capital/slots allocation.
+    If place_exits=True, also fires:
+       - SELL LIMIT @ buy*(1+target_pct%) — take profit
+       - SELL SL-M w/ trigger at buy*(1-stop_pct%) — stop loss
+    All swing positions are recorded in db.swing_positions for time-stop sweeping later.
+    """
     picks = candidates[: max(1, slots)]
     per_slot = capital / max(1, slots)
 
@@ -257,17 +267,14 @@ async def execute_picks(
 
     results: List[Dict] = []
     total_invested = 0.0
+
+    def _round_tick(p: float, tick: float = 0.05) -> float:
+        return round(round(p / tick) * tick, 2)
+
     for c in picks:
         sym = c["symbol"]
         if sym.upper() in held_symbols:
-            results.append(
-                {
-                    "symbol": sym,
-                    "status": "skipped",
-                    "reason": "already_held",
-                    "ltp": c["ltp"],
-                }
-            )
+            results.append({"symbol": sym, "status": "skipped", "reason": "already_held", "ltp": c["ltp"]})
             continue
         ltp = float(c["ltp"])
         if ltp <= 0:
@@ -275,54 +282,117 @@ async def execute_picks(
             continue
         qty = int(math.floor(per_slot / ltp))
         if qty <= 0:
-            results.append(
-                {
-                    "symbol": sym,
-                    "status": "failed",
-                    "reason": "qty_zero",
-                    "ltp": ltp,
-                    "per_slot": per_slot,
-                }
-            )
+            results.append({"symbol": sym, "status": "failed", "reason": "qty_zero", "ltp": ltp, "per_slot": per_slot})
             continue
+
+        target_price = _round_tick(ltp * (1 + target_pct / 100.0))
+        stop_trigger = _round_tick(ltp * (1 - stop_pct / 100.0))
+
         try:
-            order_resp = await ux.place_order(
+            buy_resp = await ux.place_order(
                 token,
                 instrument_key=c["instrument_key"],
                 quantity=qty,
                 transaction_type="BUY",
                 order_type="MARKET",
                 product=product,
-                tag=f"swing-auto-{datetime.utcnow().strftime('%Y%m%d')}",
+                tag=f"swing-buy-{datetime.utcnow().strftime('%Y%m%d')}",
             )
-            order_id = (order_resp.get("data") or {}).get("order_id")
-            invested = qty * ltp
-            total_invested += invested
-            results.append(
-                {
-                    "symbol": sym,
-                    "status": "placed",
-                    "qty": qty,
-                    "ltp": ltp,
-                    "estimated_cost": round(invested, 2),
-                    "order_id": order_id,
-                    "drop_pct": c["drop_pct"],
-                }
-            )
+            buy_order_id = (buy_resp.get("data") or {}).get("order_id")
         except Exception as e:
-            results.append(
-                {
-                    "symbol": sym,
-                    "status": "failed",
-                    "reason": str(e)[:200],
-                    "qty": qty,
-                    "ltp": ltp,
-                }
-            )
+            results.append({"symbol": sym, "status": "failed", "reason": f"buy: {str(e)[:120]}", "qty": qty, "ltp": ltp})
+            continue
+
+        target_order_id = None
+        stop_order_id = None
+        target_err = None
+        stop_err = None
+
+        if place_exits:
+            try:
+                t_resp = await ux.place_order(
+                    token,
+                    instrument_key=c["instrument_key"],
+                    quantity=qty,
+                    transaction_type="SELL",
+                    order_type="LIMIT",
+                    product=product,
+                    price=target_price,
+                    validity="DAY",
+                    tag=f"swing-target-{datetime.utcnow().strftime('%Y%m%d')}",
+                )
+                target_order_id = (t_resp.get("data") or {}).get("order_id")
+            except Exception as e:
+                target_err = str(e)[:160]
+                logger.warning(f"target order for {sym} failed: {target_err}")
+
+            try:
+                s_resp = await ux.place_order(
+                    token,
+                    instrument_key=c["instrument_key"],
+                    quantity=qty,
+                    transaction_type="SELL",
+                    order_type="SL-M",
+                    product=product,
+                    trigger_price=stop_trigger,
+                    validity="DAY",
+                    tag=f"swing-stop-{datetime.utcnow().strftime('%Y%m%d')}",
+                )
+                stop_order_id = (s_resp.get("data") or {}).get("order_id")
+            except Exception as e:
+                stop_err = str(e)[:160]
+                logger.warning(f"stop order for {sym} failed: {stop_err}")
+
+        invested = qty * ltp
+        total_invested += invested
+
+        # Save swing position record for time-stop sweeping
+        if db is not None:
+            try:
+                await db.swing_positions.insert_one(
+                    {
+                        "symbol": sym,
+                        "name": c.get("name", sym),
+                        "instrument_key": c["instrument_key"],
+                        "qty": qty,
+                        "buy_price": ltp,
+                        "buy_order_id": buy_order_id,
+                        "buy_date": datetime.now(timezone.utc).isoformat(),
+                        "target_price": target_price,
+                        "stop_price": stop_trigger,
+                        "target_order_id": target_order_id,
+                        "stop_order_id": stop_order_id,
+                        "max_holding_days": max_holding_days,
+                        "product": product,
+                        "status": "open",
+                    }
+                )
+            except Exception as e:
+                logger.warning(f"swing_positions write failed: {e}")
+
+        results.append(
+            {
+                "symbol": sym,
+                "status": "placed",
+                "qty": qty,
+                "ltp": ltp,
+                "estimated_cost": round(invested, 2),
+                "order_id": buy_order_id,
+                "target_price": target_price,
+                "target_order_id": target_order_id,
+                "target_err": target_err,
+                "stop_price": stop_trigger,
+                "stop_order_id": stop_order_id,
+                "stop_err": stop_err,
+                "drop_pct": c.get("drop_pct"),
+            }
+        )
 
     placed = sum(1 for r in results if r["status"] == "placed")
     skipped = sum(1 for r in results if r["status"] == "skipped")
     failed = sum(1 for r in results if r["status"] == "failed")
+    targets_set = sum(1 for r in results if r.get("target_order_id"))
+    stops_set = sum(1 for r in results if r.get("stop_order_id"))
     return {
         "executed_at": datetime.now(timezone.utc).isoformat(),
         "capital": capital,
@@ -332,5 +402,87 @@ async def execute_picks(
         "placed": placed,
         "skipped": skipped,
         "failed": failed,
+        "targets_set": targets_set,
+        "stops_set": stops_set,
+        "target_pct": target_pct,
+        "stop_pct": stop_pct,
         "results": results,
+    }
+
+
+async def manage_swing_positions(token: str, db, max_holding_days: int = 4) -> Dict:
+    """Sweep all open swing positions. Force-sell anything held >= max_holding_days
+    by cancelling target+stop orders and placing a market SELL."""
+    today = datetime.now(timezone.utc)
+    open_positions = await db.swing_positions.find({"status": "open"}, {"_id": 0}).to_list(200)
+    actions: List[Dict] = []
+
+    for pos in open_positions:
+        buy_date_str = pos.get("buy_date")
+        try:
+            buy_dt = datetime.fromisoformat(buy_date_str)
+        except Exception:
+            continue
+        if buy_dt.tzinfo is None:
+            buy_dt = buy_dt.replace(tzinfo=timezone.utc)
+        days_held = (today - buy_dt).days
+        force_max = pos.get("max_holding_days", max_holding_days)
+
+        if days_held < force_max:
+            actions.append({
+                "symbol": pos["symbol"], "status": "still_held",
+                "days_held": days_held, "until_force_sell": force_max - days_held,
+            })
+            continue
+
+        # Cancel target + stop first (so qty isn't double-pledged)
+        for oid_key in ("target_order_id", "stop_order_id"):
+            oid = pos.get(oid_key)
+            if oid:
+                try:
+                    await ux.cancel_order(token, oid)
+                except Exception as e:
+                    logger.warning(f"cancel {oid_key} {oid} failed: {e}")
+
+        # Force-sell at market
+        sell_order_id = None
+        sell_err = None
+        try:
+            sell_resp = await ux.place_order(
+                token,
+                instrument_key=pos["instrument_key"],
+                quantity=pos["qty"],
+                transaction_type="SELL",
+                order_type="MARKET",
+                product=pos.get("product", "D"),
+                tag=f"swing-time-exit-{today.strftime('%Y%m%d')}",
+            )
+            sell_order_id = (sell_resp.get("data") or {}).get("order_id")
+        except Exception as e:
+            sell_err = str(e)[:160]
+
+        await db.swing_positions.update_one(
+            {"symbol": pos["symbol"], "buy_date": buy_date_str},
+            {"$set": {
+                "status": "time_exited" if sell_order_id else "time_exit_failed",
+                "exit_date": today.isoformat(),
+                "exit_order_id": sell_order_id,
+                "exit_reason": "time_stop",
+                "exit_err": sell_err,
+            }},
+        )
+        actions.append({
+            "symbol": pos["symbol"],
+            "status": "time_exited" if sell_order_id else "time_exit_failed",
+            "days_held": days_held,
+            "qty": pos["qty"],
+            "exit_order_id": sell_order_id,
+            "err": sell_err,
+        })
+    sold = sum(1 for a in actions if a["status"] == "time_exited")
+    return {
+        "checked_at": today.isoformat(),
+        "open_count": len(open_positions),
+        "sold_count": sold,
+        "actions": actions,
     }

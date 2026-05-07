@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from universe import UNIVERSES, get_universe
 from simulator import run_simulation, run_compare, VALID_STRATEGIES
 import upstox_client as ux
-from strategy_live import scan_daily_dips, execute_picks
+from strategy_live import scan_daily_dips, execute_picks, manage_swing_positions
 
 
 ROOT_DIR = Path(__file__).parent
@@ -499,6 +499,10 @@ class ExecuteRequest(BaseModel):
     slots: int = Field(..., ge=1, le=20)
     product: str = Field(default="D", pattern="^(D|I)$")
     skip_held: bool = Field(default=True)
+    target_pct: float = Field(default=3.0, ge=0.5, le=30)
+    stop_pct: float = Field(default=4.0, ge=0.5, le=30)
+    max_holding_days: int = Field(default=4, ge=1, le=30)
+    place_exits: bool = Field(default=True)
 
 
 class AutoStrategyRequest(BaseModel):
@@ -511,6 +515,10 @@ class AutoStrategyRequest(BaseModel):
     sectors: Optional[List[str]] = None
     skip_held: bool = Field(default=True)
     min_mcap_cr: float = Field(default=0.0, ge=0, le=10000000)
+    target_pct: float = Field(default=3.0, ge=0.5, le=30)
+    stop_pct: float = Field(default=4.0, ge=0.5, le=30)
+    max_holding_days: int = Field(default=4, ge=1, le=30)
+    place_exits: bool = Field(default=True)
 
 
 @api_router.post("/upstox/scan")
@@ -542,7 +550,8 @@ async def upstox_scan(req: ScanRequest):
 
 @api_router.post("/upstox/strategy/execute")
 async def upstox_execute(req: ExecuteRequest):
-    """Execute orders against a list of pre-scanned candidates."""
+    """Execute orders against a list of pre-scanned candidates.
+    Also auto-places target (SELL LIMIT) + stop-loss (SELL SL-M) orders if place_exits=True."""
     tok = await _require_token()
     try:
         result = await execute_picks(
@@ -552,6 +561,11 @@ async def upstox_execute(req: ExecuteRequest):
             slots=req.slots,
             product=req.product,
             skip_held=req.skip_held,
+            target_pct=req.target_pct,
+            stop_pct=req.stop_pct,
+            place_exits=req.place_exits,
+            max_holding_days=req.max_holding_days,
+            db=db,
         )
     except Exception as e:
         logger.exception("execute failed")
@@ -565,11 +579,87 @@ async def upstox_execute(req: ExecuteRequest):
                 "placed": result.get("placed"),
                 "skipped": result.get("skipped"),
                 "failed": result.get("failed"),
+                "targets_set": result.get("targets_set"),
+                "stops_set": result.get("stops_set"),
                 "total_invested_estimate": result.get("total_invested_estimate"),
             },
         }
     )
     return result
+
+
+@api_router.post("/upstox/strategy/manage")
+async def upstox_manage_positions(max_holding_days: int = 4):
+    """Sweep all open swing positions. Force-sell anything held >= max_holding_days."""
+    tok = await _require_token()
+    try:
+        result = await manage_swing_positions(tok, db, max_holding_days=max_holding_days)
+    except Exception as e:
+        logger.exception("manage failed")
+        raise HTTPException(status_code=502, detail=str(e))
+    return result
+
+
+@api_router.get("/upstox/strategy/swing-positions")
+async def upstox_swing_positions():
+    docs = await db.swing_positions.find({}, {"_id": 0}).sort("buy_date", -1).to_list(200)
+    open_count = sum(1 for d in docs if d.get("status") == "open")
+    return {"positions": docs, "open_count": open_count, "total_count": len(docs)}
+
+
+@api_router.get("/upstox/dashboard/pnl")
+async def upstox_dashboard_pnl():
+    """Aggregate P&L across holdings + positions + closed swings."""
+    tok = await _require_token()
+    holdings_invested = 0.0
+    holdings_value = 0.0
+    holdings_pnl = 0.0
+    holdings_day_pnl = 0.0
+    holdings_count = 0
+    try:
+        h = await ux.get_holdings(tok)
+        for it in (h.get("data") or []):
+            qty = it.get("quantity") or 0
+            avg = it.get("average_price") or 0
+            ltp = it.get("last_price") or 0
+            day = it.get("day_change") or 0
+            holdings_invested += avg * qty
+            holdings_value += ltp * qty
+            holdings_pnl += (ltp - avg) * qty
+            holdings_day_pnl += day * qty
+            if qty > 0:
+                holdings_count += 1
+    except Exception as e:
+        logger.warning(f"holdings pnl error: {e}")
+
+    positions_pnl = 0.0
+    positions_count = 0
+    try:
+        p = await ux.get_positions(tok)
+        for it in (p.get("data") or []):
+            qty = it.get("quantity") or 0
+            if qty != 0:
+                positions_count += 1
+                positions_pnl += it.get("pnl") or 0
+    except Exception as e:
+        logger.warning(f"positions pnl error: {e}")
+
+    return {
+        "holdings": {
+            "count": holdings_count,
+            "invested": round(holdings_invested, 2),
+            "current_value": round(holdings_value, 2),
+            "unrealized_pnl": round(holdings_pnl, 2),
+            "unrealized_pnl_pct": round((holdings_pnl / holdings_invested * 100) if holdings_invested > 0 else 0, 2),
+            "day_pnl": round(holdings_day_pnl, 2),
+        },
+        "positions": {
+            "count": positions_count,
+            "pnl": round(positions_pnl, 2),
+        },
+        "total_unrealized_pnl": round(holdings_pnl + positions_pnl, 2),
+        "fetched_at": datetime.now(timezone.utc).isoformat(),
+    }
 
 
 @api_router.post("/upstox/strategy/auto")
@@ -602,6 +692,11 @@ async def upstox_auto_strategy(req: AutoStrategyRequest):
             slots=req.slots,
             product=req.product,
             skip_held=req.skip_held,
+            target_pct=req.target_pct,
+            stop_pct=req.stop_pct,
+            place_exits=req.place_exits,
+            max_holding_days=req.max_holding_days,
+            db=db,
         )
     except HTTPException:
         raise

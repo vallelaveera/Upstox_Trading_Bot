@@ -49,6 +49,9 @@ export default function StrategyTab({ onOrdersPlaced }) {
     drop_max: 4.0,
     product: "D",
     min_mcap_cr: 5000,
+    target_pct: 3.0,
+    stop_pct: 4.0,
+    max_holding_days: 4,
   });
   const [scanning, setScanning] = useState(false);
   const [executing, setExecuting] = useState(false);
@@ -186,12 +189,16 @@ export default function StrategyTab({ onOrdersPlaced }) {
           capital: config.capital,
           slots: config.slots,
           product: config.product,
+          target_pct: config.target_pct,
+          stop_pct: config.stop_pct,
+          max_holding_days: config.max_holding_days,
+          place_exits: true,
         },
         { timeout: 180000 }
       );
       setExecutionResult(r.data);
       toast.success(
-        `AUTO done · ${r.data.placed} placed · ${r.data.failed} failed`
+        `AUTO done · ${r.data.placed} placed · ${r.data.targets_set || 0}T · ${r.data.stops_set || 0}SL`
       );
       onOrdersPlaced?.();
     } catch (e) {
@@ -384,6 +391,66 @@ export default function StrategyTab({ onOrdersPlaced }) {
               ))}
             </div>
           </div>
+        </div>
+
+        {/* Auto-Exit settings */}
+        <div className="mt-5 pt-4 border-t border-white/5">
+          <div className="flex items-center gap-2 mb-3">
+            <Lightning size={14} weight="duotone" className="text-[#00E676]" />
+            <Label className="text-[11px] font-semibold text-neutral-400 uppercase tracking-[0.18em]">
+              Auto-Exits (placed automatically after each buy)
+            </Label>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label className="text-[10px] font-semibold text-neutral-400 uppercase tracking-[0.18em] flex justify-between">
+                <span>Take Profit</span>
+                <span className="font-mono text-[#00E676]">+{config.target_pct}%</span>
+              </Label>
+              <Slider
+                min={0.5}
+                max={15}
+                step={0.25}
+                value={[config.target_pct]}
+                onValueChange={(v) => update("target_pct", v[0])}
+                data-testid="strategy-target-slider"
+                className="mt-3"
+              />
+            </div>
+            <div>
+              <Label className="text-[10px] font-semibold text-neutral-400 uppercase tracking-[0.18em] flex justify-between">
+                <span>Stop Loss</span>
+                <span className="font-mono text-[#FF3B30]">−{config.stop_pct}%</span>
+              </Label>
+              <Slider
+                min={0.5}
+                max={15}
+                step={0.25}
+                value={[config.stop_pct]}
+                onValueChange={(v) => update("stop_pct", v[0])}
+                data-testid="strategy-stop-slider"
+                className="mt-3"
+              />
+            </div>
+            <div>
+              <Label className="text-[10px] font-semibold text-neutral-400 uppercase tracking-[0.18em] flex justify-between">
+                <span>Max Holding</span>
+                <span className="font-mono text-[#E2FF00]">{config.max_holding_days}d</span>
+              </Label>
+              <Slider
+                min={1}
+                max={20}
+                step={1}
+                value={[config.max_holding_days]}
+                onValueChange={(v) => update("max_holding_days", v[0])}
+                data-testid="strategy-maxhold-slider"
+                className="mt-3"
+              />
+            </div>
+          </div>
+          <p className="text-[11px] text-neutral-500 leading-relaxed mt-3">
+            Every buy fires <span className="text-[#00E676]">SELL LIMIT @ +{config.target_pct}%</span> (target) and <span className="text-[#FF3B30]">SELL SL-M @ −{config.stop_pct}%</span> (stop). Time-stop: positions held ≥{config.max_holding_days} days are force-sold via the <strong className="text-[#E2FF00]">Manage Positions</strong> button.
+          </p>
         </div>
 
         {/* Auto mode toggle */}
