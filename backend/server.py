@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from universe import UNIVERSES, get_universe
 from simulator import run_simulation, run_compare, VALID_STRATEGIES
 import upstox_client as ux
+from strategy_live import scan_daily_dips, execute_picks
 
 
 ROOT_DIR = Path(__file__).parent
@@ -480,6 +481,149 @@ async def upstox_instrument_lookup(symbol: str):
 async def upstox_instruments_refresh():
     m = await ux.fetch_instrument_map()
     return {"count": len(m)}
+
+
+# --------- Live strategy scan + execute ---------
+class ScanRequest(BaseModel):
+    universe: str = Field(default="nifty200")
+    drop_min: float = Field(default=2.0, ge=0, le=20)
+    drop_max: float = Field(default=4.0, ge=0, le=30)
+    top_n: int = Field(default=20, ge=1, le=50)
+    sectors: Optional[List[str]] = None
+
+
+class ExecuteRequest(BaseModel):
+    candidates: List[dict] = Field(..., min_length=1, max_length=50)
+    capital: float = Field(..., gt=0, le=10000000)
+    slots: int = Field(..., ge=1, le=20)
+    product: str = Field(default="D", pattern="^(D|I)$")
+    skip_held: bool = Field(default=True)
+
+
+class AutoStrategyRequest(BaseModel):
+    capital: float = Field(default=50000.0, gt=0, le=10000000)
+    slots: int = Field(default=5, ge=1, le=20)
+    universe: str = Field(default="nifty200")
+    drop_min: float = Field(default=2.0, ge=0, le=20)
+    drop_max: float = Field(default=4.0, ge=0, le=30)
+    product: str = Field(default="D", pattern="^(D|I)$")
+    sectors: Optional[List[str]] = None
+    skip_held: bool = Field(default=True)
+
+
+@api_router.post("/upstox/scan")
+async def upstox_scan(req: ScanRequest):
+    tok = await _require_token()
+    if req.drop_min >= req.drop_max:
+        raise HTTPException(status_code=400, detail="drop_min must be < drop_max")
+    try:
+        result = await scan_daily_dips(
+            tok,
+            universe=req.universe,
+            drop_min=req.drop_min,
+            drop_max=req.drop_max,
+            top_n=req.top_n,
+            sectors=req.sectors,
+        )
+    except Exception as e:
+        logger.exception("scan failed")
+        raise HTTPException(status_code=502, detail=str(e))
+    if result.get("error"):
+        raise HTTPException(status_code=502, detail=result["error"])
+    # log scan
+    await db.upstox_scans_log.insert_one(
+        {"ts": datetime.now(timezone.utc).isoformat(), "request": req.model_dump(), "count": result.get("count", 0)}
+    )
+    return result
+
+
+@api_router.post("/upstox/strategy/execute")
+async def upstox_execute(req: ExecuteRequest):
+    """Execute orders against a list of pre-scanned candidates."""
+    tok = await _require_token()
+    try:
+        result = await execute_picks(
+            tok,
+            candidates=req.candidates,
+            capital=req.capital,
+            slots=req.slots,
+            product=req.product,
+            skip_held=req.skip_held,
+        )
+    except Exception as e:
+        logger.exception("execute failed")
+        raise HTTPException(status_code=502, detail=str(e))
+    await db.upstox_strategy_runs.insert_one(
+        {
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "request": req.model_dump(exclude={"candidates"}),
+            "candidates_count": len(req.candidates),
+            "result_summary": {
+                "placed": result.get("placed"),
+                "skipped": result.get("skipped"),
+                "failed": result.get("failed"),
+                "total_invested_estimate": result.get("total_invested_estimate"),
+            },
+        }
+    )
+    return result
+
+
+@api_router.post("/upstox/strategy/auto")
+async def upstox_auto_strategy(req: AutoStrategyRequest):
+    """One-shot scan+execute. Used for the 'Auto-Execute Top N' button."""
+    tok = await _require_token()
+    if req.drop_min >= req.drop_max:
+        raise HTTPException(status_code=400, detail="drop_min must be < drop_max")
+    try:
+        scan = await scan_daily_dips(
+            tok,
+            universe=req.universe,
+            drop_min=req.drop_min,
+            drop_max=req.drop_max,
+            top_n=req.slots,
+            sectors=req.sectors,
+        )
+        if scan.get("error"):
+            raise HTTPException(status_code=502, detail=scan["error"])
+        if not scan.get("candidates"):
+            return {
+                "scan": scan,
+                "execution": {"placed": 0, "skipped": 0, "failed": 0, "results": [], "message": "No candidates matched criteria"},
+            }
+        execution = await execute_picks(
+            tok,
+            candidates=scan["candidates"],
+            capital=req.capital,
+            slots=req.slots,
+            product=req.product,
+            skip_held=req.skip_held,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("auto strategy failed")
+        raise HTTPException(status_code=502, detail=str(e))
+    await db.upstox_strategy_runs.insert_one(
+        {
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "mode": "auto",
+            "request": req.model_dump(),
+            "scan_count": scan.get("count"),
+            "result_summary": {
+                "placed": execution.get("placed"),
+                "skipped": execution.get("skipped"),
+                "failed": execution.get("failed"),
+            },
+        }
+    )
+    return {"scan": scan, "execution": execution}
+
+
+@api_router.get("/upstox/strategy/runs")
+async def upstox_strategy_runs():
+    docs = await db.upstox_strategy_runs.find({}, {"_id": 0}).sort("ts", -1).to_list(20)
+    return {"runs": docs}
 
 
 app.include_router(api_router)

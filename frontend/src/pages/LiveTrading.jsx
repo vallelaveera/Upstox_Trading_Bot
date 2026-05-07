@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import StrategyTab from "@/components/StrategyTab";
 import {
   Dialog,
   DialogContent,
@@ -239,14 +240,21 @@ export default function LiveTrading() {
         {!status.connected ? (
           <NotConnectedHero onConnect={connect} instrumentsLoaded={status.instruments_loaded} />
         ) : (
-          <Tabs defaultValue="trade" className="space-y-4">
+          <Tabs defaultValue="strategy" className="space-y-4">
             <TabsList className="bg-[#0c0c0c] border border-white/10 p-1 h-auto">
+              <TabsTrigger
+                value="strategy"
+                data-testid="live-tab-strategy"
+                className="data-[state=active]:bg-[#E2FF00] data-[state=active]:text-black px-5 py-2.5 font-display font-bold tracking-wide uppercase text-sm"
+              >
+                Apply Strategy
+              </TabsTrigger>
               <TabsTrigger
                 value="trade"
                 data-testid="live-tab-trade"
                 className="data-[state=active]:bg-[#E2FF00] data-[state=active]:text-black px-5 py-2.5 font-display font-bold tracking-wide uppercase text-sm"
               >
-                Place Order
+                Manual Order
               </TabsTrigger>
               <TabsTrigger
                 value="holdings"
@@ -270,6 +278,10 @@ export default function LiveTrading() {
                 Orders
               </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="strategy" className="space-y-4">
+              <StrategyTab onOrdersPlaced={refreshAll} />
+            </TabsContent>
 
             <TabsContent value="trade" className="space-y-4">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
