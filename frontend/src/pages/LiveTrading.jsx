@@ -15,6 +15,8 @@ import {
   CheckCircle,
   XCircle,
   Lightning,
+  ClockClockwise,
+  TrendUp,
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -367,7 +369,8 @@ export default function LiveTrading() {
             <TabsContent value="holdings">
               <HoldingsTable holdings={holdings} swingMap={swingMap} />
             </TabsContent>
-            <TabsContent value="positions">
+            <TabsContent value="positions" className="space-y-4">
+              <WhatIfBacktest />
               <PositionsTable positions={positions} swingMap={swingMap} />
             </TabsContent>
             <TabsContent value="orders">
@@ -1110,6 +1113,211 @@ function PositionsTable({ positions, swingMap }) {
     </div>
   );
 }
+
+function WhatIfBacktest() {
+  const [running, setRunning] = useState(false);
+  const [result, setResult] = useState(null);
+  const [config, setConfig] = useState({
+    drop_min: 2.0,
+    drop_max: 5.0,
+    target_pct: 5.0,
+    stop_pct: 3.0,
+    max_holding_days: 4,
+  });
+
+  const run = useCallback(async () => {
+    setRunning(true);
+    try {
+      const r = await axios.post(`${API}/upstox/positions/backtest`, {
+        ...config,
+        windows_weeks: [1, 2, 4],
+      }, { timeout: 120000 });
+      setResult(r.data);
+      if (r.data?.error) {
+        toast.error(r.data.error);
+      } else {
+        toast.success(`Backtest done · ${r.data.symbols_count} stocks · 3 windows`);
+      }
+    } catch (e) {
+      const msg = e?.response?.data?.detail || e.message;
+      toast.error(`Backtest failed: ${typeof msg === "string" ? msg : "unknown"}`);
+    } finally {
+      setRunning(false);
+    }
+  }, [config]);
+
+  const update = (k, v) => setConfig((c) => ({ ...c, [k]: v }));
+
+  return (
+    <div className="bg-[#0c0c0c] border border-white/10 rounded-xl p-5 md:p-6" data-testid="whatif-backtest-card">
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+        <div className="flex items-center gap-2">
+          <ClockClockwise size={18} weight="duotone" className="text-[#E2FF00]" />
+          <div>
+            <h3 className="font-display font-bold text-lg uppercase tracking-tight">
+              What-If Backtest
+            </h3>
+            <p className="text-[11px] text-neutral-500 font-mono mt-0.5">
+              Replay the swing strategy on YOUR current positions across recent windows
+            </p>
+          </div>
+        </div>
+        <Button
+          onClick={run}
+          disabled={running}
+          data-testid="whatif-run-button"
+          className="bg-[#E2FF00] hover:bg-[#CBE600] text-black font-bold tracking-wide"
+        >
+          {running ? (
+            <ArrowsClockwise size={16} weight="bold" className="mr-2 animate-spin" />
+          ) : (
+            <TrendUp size={16} weight="fill" className="mr-2" />
+          )}
+          {running ? "Replaying…" : "Run Backtest"}
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pb-4 border-b border-white/5">
+        <SettingInput label="Drop Min" suffix="%" value={config.drop_min} onChange={(v) => update("drop_min", v)} step={0.25} testid="whatif-drop-min" />
+        <SettingInput label="Drop Max" suffix="%" value={config.drop_max} onChange={(v) => update("drop_max", v)} step={0.25} testid="whatif-drop-max" />
+        <SettingInput label="Target" suffix="%" value={config.target_pct} onChange={(v) => update("target_pct", v)} step={0.25} accent="#00E676" testid="whatif-target" />
+        <SettingInput label="Stop" suffix="%" value={config.stop_pct} onChange={(v) => update("stop_pct", v)} step={0.25} accent="#FF3B30" testid="whatif-stop" />
+        <SettingInput label="Max Hold" suffix="d" value={config.max_holding_days} onChange={(v) => update("max_holding_days", v)} step={1} testid="whatif-maxhold" />
+      </div>
+
+      {!result && !running && (
+        <div className="py-8 text-center text-neutral-500 font-mono text-sm" data-testid="whatif-empty">
+          Click "Run Backtest" — replays the daily-drop strategy across 1w / 2w / 4w windows on your held stocks.
+          <div className="text-[11px] text-neutral-600 mt-1">Capital ≥ ₹1L (or actual invested, whichever is higher).</div>
+        </div>
+      )}
+
+      {running && (
+        <div className="py-8 text-center text-neutral-500 font-mono text-sm" data-testid="whatif-running">
+          <ArrowsClockwise size={20} weight="bold" className="animate-spin inline mr-2 text-[#E2FF00]" />
+          Fetching ~67d history × {result?.symbols_count || "—"} stocks · simulating 3 windows…
+        </div>
+      )}
+
+      {result && !running && !result.error && (
+        <>
+          <div className="pt-4 mb-3 flex items-center justify-between flex-wrap gap-2">
+            <div className="text-[11px] text-neutral-500 font-mono">
+              <span className="text-neutral-300">{result.symbols_count}</span> stocks ·
+              <span className="text-[#E2FF00] mx-1">{inrFull(result.capital_used)}</span> capital base ·
+              actual invested {inrFull(result.invested_actual)}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {(result.symbols || []).map((s) => (
+                <span key={s} className="bg-white/[0.04] border border-white/10 rounded px-2 py-0.5 font-mono text-[10px] text-neutral-300">
+                  {s}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+            {(result.windows || []).map((w) => <WindowCard key={w.weeks} w={w} />)}
+          </div>
+        </>
+      )}
+
+      {result?.error && (
+        <div className="bg-[#FF3B30]/10 border border-[#FF3B30]/30 rounded-lg p-3 mt-4 text-[12px] text-[#FF3B30] font-mono" data-testid="whatif-error">
+          {result.error}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SettingInput({ label, suffix, value, onChange, step, accent, testid }) {
+  return (
+    <div>
+      <Label className="text-[10px] font-semibold text-neutral-400 uppercase tracking-[0.18em] flex justify-between">
+        <span>{label}</span>
+        <span className="font-mono" style={accent ? { color: accent } : { color: "#E2FF00" }}>
+          {value}{suffix}
+        </span>
+      </Label>
+      <Input
+        type="number"
+        step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        data-testid={testid}
+        className="bg-black border-white/10 text-white font-mono mt-2 h-9"
+      />
+    </div>
+  );
+}
+
+function WindowCard({ w }) {
+  const k = w.kpis || {};
+  const pnl = k.net_pnl ?? 0;
+  const positive = pnl >= 0;
+  const winRate = k.win_rate ?? 0;
+  const exitsT = k.exits_target ?? 0;
+  const exitsSL = k.exits_stoploss ?? 0;
+  const exitsTm = k.exits_time ?? 0;
+  const trades = k.total_trades ?? 0;
+  return (
+    <div
+      className={`bg-black/40 border rounded-xl p-4 ${positive ? "border-[#00E676]/30 ring-1 ring-[#00E676]/10" : "border-[#FF3B30]/30 ring-1 ring-[#FF3B30]/10"}`}
+      data-testid={`whatif-window-${w.label}`}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-[10px] font-semibold text-neutral-400 uppercase tracking-[0.2em]">
+          Last {w.label}
+        </div>
+        <span className="bg-white/[0.04] border border-white/10 rounded px-2 py-0.5 font-mono text-[10px] text-neutral-300">
+          {trades} trades
+        </span>
+      </div>
+      {w.error ? (
+        <div className="text-[#FF3B30] text-[12px] font-mono">{w.error}</div>
+      ) : trades === 0 ? (
+        <div className="text-neutral-500 text-[12px] font-mono py-3">
+          No drops triggered in this window. Try widening the drop band.
+        </div>
+      ) : (
+        <>
+          <div className="flex items-end gap-2 mb-3">
+            <div
+              className="font-display font-black text-2xl tracking-tight leading-none"
+              style={{ color: positive ? "#00E676" : "#FF3B30" }}
+              data-testid={`whatif-pnl-${w.label}`}
+            >
+              {positive ? "+" : ""}{inrFull(pnl)}
+            </div>
+            <div
+              className="font-mono text-sm leading-none mb-0.5"
+              style={{ color: positive ? "#00E676" : "#FF3B30" }}
+            >
+              ({k.return_pct >= 0 ? "+" : ""}{(k.return_pct ?? 0).toFixed(2)}%)
+            </div>
+          </div>
+          <div className="space-y-1.5 text-[11px] font-mono">
+            <RowKV k="Win rate" v={`${winRate.toFixed(0)}%`} accent={winRate >= 50 ? "#00E676" : "#FFA940"} />
+            <RowKV k="Exits" v={`${exitsT}T · ${exitsSL}SL · ${exitsTm}TM`} />
+            <RowKV k="Max DD" v={`${(k.max_drawdown_pct ?? 0).toFixed(2)}%`} accent="#FFA940" />
+            <RowKV k="Costs" v={`${inrFull(k.total_costs ?? 0)} (${(k.cost_drag_pct ?? 0).toFixed(2)}%)`} accent="#FF6EC7" />
+            <RowKV k="Final" v={inrFull(k.final_portfolio ?? 0)} accent="#E2FF00" />
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function RowKV({ k, v, accent }) {
+  return (
+    <div className="flex justify-between">
+      <span className="text-neutral-500">{k}</span>
+      <span className="font-bold" style={accent ? { color: accent } : { color: "#FFFFFF" }}>{v}</span>
+    </div>
+  );
+}
+
 
 function OrdersTable({ orders, onCancel }) {
   const cancel = async (orderId) => {

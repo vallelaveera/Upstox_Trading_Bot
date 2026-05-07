@@ -10,7 +10,7 @@ import uuid
 import httpx
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 from pydantic import BaseModel, Field, ConfigDict
 
@@ -812,6 +812,136 @@ async def upstox_auto_strategy(req: AutoStrategyRequest):
 async def upstox_strategy_runs():
     docs = await db.upstox_strategy_runs.find({}, {"_id": 0}).sort("ts", -1).to_list(20)
     return {"runs": docs}
+
+
+class PositionsBacktestRequest(BaseModel):
+    drop_min: float = Field(default=2.0, ge=0, le=20)
+    drop_max: float = Field(default=5.0, ge=0, le=30)
+    target_pct: float = Field(default=5.0, ge=0.5, le=30)
+    stop_pct: float = Field(default=3.0, ge=0.5, le=30)
+    max_holding_days: int = Field(default=4, ge=1, le=30)
+    windows_weeks: List[int] = Field(default_factory=lambda: [1, 2, 4])
+    capital_override: Optional[float] = None  # if None, uses sum of currently invested
+
+
+@api_router.post("/upstox/positions/backtest")
+async def upstox_positions_backtest(req: PositionsBacktestRequest):
+    """Backtest the Daily-Drop swing strategy ONLY against the user's currently held
+    positions, across multiple windows (1w / 2w / 4w by default). Answers: how would
+    the same strategy have performed on these exact stocks recently?
+    """
+    tok = await _require_token()
+
+    # 1) Read current positions + holdings, build symbol set + capital base
+    symbols: Dict[str, Dict] = {}
+    invested_total = 0.0
+    try:
+        p = await ux.get_positions(tok)
+        for it in (p.get("data") or []):
+            sym = (it.get("tradingsymbol") or it.get("trading_symbol") or "").upper()
+            qty = it.get("quantity") or 0
+            if not sym or qty == 0:
+                continue
+            avg = it.get("average_price") or 0
+            if avg <= 0:
+                avg = it.get("buy_price") or it.get("buy_average") or it.get("day_buy_price") or 0
+            invested_total += avg * abs(qty)
+            symbols.setdefault(sym, {"symbol": sym, "name": sym, "sector": "Mixed"})
+    except Exception as e:
+        logger.warning(f"positions fetch for backtest: {e}")
+    try:
+        h = await ux.get_holdings(tok)
+        for it in (h.get("data") or []):
+            sym = (it.get("tradingsymbol") or it.get("trading_symbol") or "").upper()
+            qty = it.get("quantity") or 0
+            if not sym or qty <= 0:
+                continue
+            avg = it.get("average_price") or 0
+            invested_total += avg * qty
+            symbols.setdefault(sym, {"symbol": sym, "name": sym, "sector": "Mixed"})
+    except Exception as e:
+        logger.warning(f"holdings fetch for backtest: {e}")
+
+    if not symbols:
+        return {
+            "error": "No open positions or holdings to backtest",
+            "windows": [],
+            "symbols": [],
+            "capital_used": 0.0,
+        }
+
+    # Try to enrich symbol dicts with proper sector + name from the universe master
+    nifty500 = get_universe("nifty500")
+    by_sym = {s["symbol"].upper(): s for s in nifty500}
+    enriched: List[Dict] = []
+    for sym, stub in symbols.items():
+        master = by_sym.get(sym)
+        enriched.append(master if master else stub)
+
+    # 2) Choose capital. Default = max(invested, 100000) so each slot >= ~₹5K
+    capital = req.capital_override or max(invested_total, 100000.0)
+    slots = max(1, len(enriched))
+
+    # 3) Run sim across requested windows
+    windows_out: List[Dict] = []
+    for w in req.windows_weeks:
+        try:
+            res = await run_in_threadpool(
+                run_simulation,
+                capital=capital,
+                weeks=w,
+                strategy_type="daily_drop",
+                daily_drop_min=req.drop_min,
+                daily_drop_max=req.drop_max,
+                recovery_target=req.target_pct,
+                stop_loss=req.stop_pct,
+                max_holding_days=req.max_holding_days,
+                max_positions=slots,
+                lookback_days=20,
+                custom_stocks=enriched,
+            )
+        except Exception as e:
+            logger.exception(f"backtest week={w} failed")
+            res = {"error": str(e)[:200], "kpis": {}, "trades": []}
+        kpis = res.get("kpis") or {}
+        windows_out.append({
+            "weeks": w,
+            "label": f"{w}w" if w != 1 else "1w",
+            "kpis": {
+                "starting_capital": kpis.get("starting_capital"),
+                "final_portfolio": kpis.get("final_portfolio"),
+                "net_pnl": kpis.get("net_pnl"),
+                "return_pct": kpis.get("return_pct"),
+                "total_trades": kpis.get("total_trades"),
+                "winning_trades": kpis.get("winning_trades"),
+                "losing_trades": kpis.get("losing_trades"),
+                "win_rate": kpis.get("win_rate"),
+                "max_drawdown_pct": kpis.get("max_drawdown_pct"),
+                "exits_target": kpis.get("exits_target"),
+                "exits_stoploss": kpis.get("exits_stoploss"),
+                "exits_time": kpis.get("exits_time"),
+                "total_costs": kpis.get("total_costs"),
+                "cost_drag_pct": kpis.get("cost_drag_pct"),
+            },
+            "trades_count": len(res.get("trades") or []),
+            "error": res.get("error"),
+        })
+
+    return {
+        "ran_at": datetime.now(timezone.utc).isoformat(),
+        "symbols": [s["symbol"] for s in enriched],
+        "symbols_count": len(enriched),
+        "capital_used": round(capital, 2),
+        "invested_actual": round(invested_total, 2),
+        "settings": {
+            "drop_min": req.drop_min,
+            "drop_max": req.drop_max,
+            "target_pct": req.target_pct,
+            "stop_pct": req.stop_pct,
+            "max_holding_days": req.max_holding_days,
+        },
+        "windows": windows_out,
+    }
 
 
 @api_router.get("/upstox/diagnostic")

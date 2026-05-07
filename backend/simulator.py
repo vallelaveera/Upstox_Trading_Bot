@@ -211,11 +211,13 @@ def run_simulation(
     cost_pct_per_leg: float = 0.15,  # % of trade value (STT+exchange+GST+stamp+slippage)
     # internal: optional shared data fetch (for /compare)
     _shared_data: Optional[pd.DataFrame] = None,
+    # advanced: override universe lookup with a custom stock list
+    custom_stocks: Optional[List[Dict]] = None,
 ) -> Dict:
     if strategy_type not in VALID_STRATEGIES:
         strategy_type = STRATEGY_PEAK_DIP
 
-    universe_stocks = get_universe(universe)
+    universe_stocks = custom_stocks if custom_stocks else get_universe(universe)
 
     data = _shared_data if _shared_data is not None else _fetch_history(universe_stocks, weeks)
     if data is None or data.empty:
