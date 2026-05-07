@@ -888,7 +888,12 @@ function HoldingsTable({ holdings, swingMap }) {
           {holdings.map((h, i) => {
             const sym = (h.tradingsymbol || h.trading_symbol || "").toUpperCase();
             const ltp = h.last_price ?? 0;
-            const avg = h.average_price ?? 0;
+            // Holdings normally have average_price set, but guard against 0 by
+            // falling back to close_price minus day_change (i.e. yesterday's close).
+            const avgRaw = h.average_price ?? 0;
+            const avg = avgRaw > 0
+              ? avgRaw
+              : (h.buy_price || h.last_price || 0);
             const qty = h.quantity ?? 0;
             const totalChg = (ltp - avg) * qty;
             const totalChgPct = avg > 0 ? ((ltp - avg) / avg) * 100 : 0;
@@ -1003,7 +1008,11 @@ function PositionsTable({ positions, swingMap }) {
           {positions.map((p, i) => {
             const sym = (p.tradingsymbol || p.trading_symbol || "").toUpperCase();
             const ltp = p.last_price ?? 0;
-            const avg = p.average_price ?? 0;
+            // Upstox returns average_price=0 for fresh same-day positions.
+            // Fall back to buy_price / buy_average / day_buy_price.
+            const avg = (p.average_price && p.average_price > 0)
+              ? p.average_price
+              : (p.buy_price || p.buy_average || p.day_buy_price || 0);
             const pnlValue = p.pnl ?? 0;
             const swing = swingMap?.[sym];
             const targetPrice = swing?.target_price ?? avg * 1.05;
