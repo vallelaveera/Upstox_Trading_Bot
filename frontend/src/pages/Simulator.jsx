@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import {
   Lightning,
@@ -7,6 +8,7 @@ import {
   ChartLineUp,
   ChartBar,
   Play,
+  Plug,
 } from "@phosphor-icons/react";
 import FiltersPanel from "@/components/FiltersPanel";
 import KpiCards from "@/components/KpiCards";
@@ -80,9 +82,15 @@ export default function Simulator() {
               </p>
             </div>
           </div>
-          <div className="hidden md:flex items-center gap-2 text-xs text-neutral-400">
+          <div className="hidden md:flex items-center gap-3 text-xs text-neutral-400">
             <span className="pulse-dot inline-block h-1.5 w-1.5 rounded-full bg-[#00E676]" />
             <span className="font-mono uppercase tracking-wider">Yahoo Finance · Live data</span>
+            <Link to="/live" data-testid="nav-go-live">
+              <Button className="bg-[#E2FF00] hover:bg-[#CBE600] text-black font-bold tracking-wide">
+                <Plug size={14} weight="fill" className="mr-2" />
+                Go Live
+              </Button>
+            </Link>
           </div>
         </div>
       </header>

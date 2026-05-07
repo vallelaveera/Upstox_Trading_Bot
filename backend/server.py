@@ -1,5 +1,6 @@
 from fastapi import FastAPI, APIRouter, HTTPException
 from fastapi.concurrency import run_in_threadpool
+from fastapi.responses import RedirectResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -7,13 +8,14 @@ import os
 import logging
 import uuid
 from pathlib import Path
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import List, Optional
 
 from pydantic import BaseModel, Field, ConfigDict
 
 from universe import UNIVERSES, get_universe
 from simulator import run_simulation, run_compare, VALID_STRATEGIES
+import upstox_client as ux
 
 
 ROOT_DIR = Path(__file__).parent
@@ -236,6 +238,250 @@ async def list_simulations():
     return {"simulations": docs}
 
 
+# ============== UPSTOX LIVE TRADING ==============
+USER_ID = "default"  # single-user MVP
+
+
+class PlaceOrderBody(BaseModel):
+    symbol: str = Field(..., description="NSE symbol e.g. RELIANCE")
+    quantity: int = Field(..., gt=0)
+    transaction_type: str = Field(..., pattern="^(BUY|SELL)$")
+    order_type: str = Field(default="MARKET", pattern="^(MARKET|LIMIT)$")
+    product: str = Field(default="D", pattern="^(D|I)$")  # D=CNC, I=MIS
+    price: float = Field(default=0.0, ge=0)
+    validity: str = Field(default="DAY", pattern="^(DAY|IOC)$")
+
+
+class QuoteRequest(BaseModel):
+    symbols: List[str] = Field(..., min_length=1, max_length=500)
+
+
+async def _get_active_token() -> Optional[str]:
+    doc = await db.upstox_tokens.find_one(
+        {"user_id": USER_ID, "is_active": True}, {"_id": 0}
+    )
+    if not doc:
+        return None
+    expires_at = doc.get("expires_at")
+    if isinstance(expires_at, str):
+        expires_at = datetime.fromisoformat(expires_at)
+    if expires_at and expires_at < datetime.now(timezone.utc):
+        await db.upstox_tokens.update_one(
+            {"user_id": USER_ID}, {"$set": {"is_active": False}}
+        )
+        return None
+    try:
+        return ux.decrypt_token(doc["encrypted_token"])
+    except Exception as e:
+        logger.exception(f"Token decrypt failed: {e}")
+        return None
+
+
+async def _require_token() -> str:
+    tok = await _get_active_token()
+    if not tok:
+        raise HTTPException(
+            status_code=401,
+            detail="Upstox not connected. Click 'Connect Upstox' to authorize.",
+        )
+    return tok
+
+
+@api_router.get("/upstox/status")
+async def upstox_status():
+    tok = await _get_active_token()
+    if not tok:
+        return {
+            "connected": False,
+            "instruments_loaded": ux.instrument_count(),
+        }
+    profile = None
+    try:
+        p = await ux.get_profile(tok)
+        profile = p.get("data", {})
+    except Exception as e:
+        logger.warning(f"profile fetch err: {e}")
+    return {
+        "connected": True,
+        "profile": {
+            "user_name": (profile or {}).get("user_name"),
+            "email": (profile or {}).get("email"),
+            "user_id": (profile or {}).get("user_id"),
+            "broker": (profile or {}).get("broker", "UPSTOX"),
+        }
+        if profile
+        else None,
+        "instruments_loaded": ux.instrument_count(),
+    }
+
+
+@api_router.get("/upstox/auth/url")
+async def upstox_auth_url():
+    if not os.environ.get("UPSTOX_API_KEY"):
+        raise HTTPException(status_code=500, detail="UPSTOX_API_KEY not configured")
+    return ux.build_auth_url()
+
+
+@api_router.get("/upstox/callback")
+async def upstox_callback(code: str = "", state: str = "", error: str = ""):
+    """OAuth redirect URI. Exchanges code for token, then redirects to /live."""
+    base = os.environ.get("APP_BASE_URL", "/")
+    if error:
+        return RedirectResponse(url=f"{base}/live?upstox=error&detail={error}")
+    if not code:
+        return RedirectResponse(url=f"{base}/live?upstox=error&detail=missing_code")
+    if state and not ux.consume_state(state):
+        logger.warning("State mismatch but proceeding (single-user MVP)")
+    try:
+        token_resp = await ux.exchange_code(code)
+    except Exception:
+        logger.exception("token exchange")
+        return RedirectResponse(url=f"{base}/live?upstox=error&detail=exchange_failed")
+
+    access_token = token_resp.get("access_token")
+    if not access_token:
+        return RedirectResponse(url=f"{base}/live?upstox=error&detail=no_token")
+
+    enc = ux.encrypt_token(access_token)
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
+    await db.upstox_tokens.replace_one(
+        {"user_id": USER_ID},
+        {
+            "user_id": USER_ID,
+            "encrypted_token": enc,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "expires_at": expires_at.isoformat(),
+            "is_active": True,
+            "broker_user_name": token_resp.get("user_name"),
+            "broker_user_id": token_resp.get("user_id"),
+        },
+        upsert=True,
+    )
+    return RedirectResponse(url=f"{base}/live?upstox=ok")
+
+
+@api_router.post("/upstox/disconnect")
+async def upstox_disconnect():
+    await db.upstox_tokens.update_one(
+        {"user_id": USER_ID}, {"$set": {"is_active": False}}
+    )
+    return {"ok": True}
+
+
+@api_router.get("/upstox/funds")
+async def upstox_funds():
+    tok = await _require_token()
+    try:
+        return await ux.get_funds(tok)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+@api_router.get("/upstox/holdings")
+async def upstox_holdings():
+    tok = await _require_token()
+    try:
+        return await ux.get_holdings(tok)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+@api_router.get("/upstox/positions")
+async def upstox_positions():
+    tok = await _require_token()
+    try:
+        return await ux.get_positions(tok)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+@api_router.get("/upstox/orders")
+async def upstox_orders():
+    tok = await _require_token()
+    try:
+        return await ux.get_orders(tok)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+@api_router.delete("/upstox/orders/{order_id}")
+async def upstox_cancel_order(order_id: str):
+    tok = await _require_token()
+    try:
+        return await ux.cancel_order(tok, order_id)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+@api_router.post("/upstox/orders/place")
+async def upstox_place_order(body: PlaceOrderBody):
+    tok = await _require_token()
+    inst = ux.lookup_instrument(body.symbol)
+    if not inst:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Instrument key not found for symbol '{body.symbol}'. Try refreshing instruments.",
+        )
+    try:
+        result = await ux.place_order(
+            tok,
+            instrument_key=inst["instrument_key"],
+            quantity=body.quantity,
+            transaction_type=body.transaction_type,
+            order_type=body.order_type,
+            product=body.product,
+            price=body.price,
+            validity=body.validity,
+        )
+        # log audit
+        await db.upstox_orders_log.insert_one(
+            {
+                "user_id": USER_ID,
+                "ts": datetime.now(timezone.utc).isoformat(),
+                "request": body.model_dump(),
+                "instrument_key": inst["instrument_key"],
+                "response": result,
+            }
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+@api_router.post("/upstox/quote")
+async def upstox_quote(req: QuoteRequest):
+    tok = await _require_token()
+    keys: List[str] = []
+    missing: List[str] = []
+    for s in req.symbols:
+        inst = ux.lookup_instrument(s)
+        if inst:
+            keys.append(inst["instrument_key"])
+        else:
+            missing.append(s)
+    if not keys:
+        return {"data": {}, "missing": missing}
+    try:
+        quotes = await ux.get_ltp(tok, keys)
+        return {"data": quotes.get("data", {}), "missing": missing}
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+@api_router.get("/upstox/instruments/{symbol}")
+async def upstox_instrument_lookup(symbol: str):
+    inst = ux.lookup_instrument(symbol)
+    if not inst:
+        raise HTTPException(status_code=404, detail="Symbol not found")
+    return inst
+
+
+@api_router.post("/upstox/instruments/refresh")
+async def upstox_instruments_refresh():
+    m = await ux.fetch_instrument_map()
+    return {"count": len(m)}
+
+
 app.include_router(api_router)
 
 app.add_middleware(
@@ -250,3 +496,12 @@ app.add_middleware(
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
+
+
+@app.on_event("startup")
+async def load_upstox_instruments():
+    """Fetch Upstox instrument map at startup (non-blocking)."""
+    try:
+        await ux.fetch_instrument_map()
+    except Exception as e:
+        logger.warning(f"Instrument prefetch failed: {e}")

@@ -1,0 +1,35 @@
+{
+  "summary": "Tested v3 update: transaction cost model in /api/simulate + Upstox v2 OAuth/instruments/protected endpoints + frontend /live page and Simulator cost UI. 20/20 backend tests pass; frontend disconnected-state and OAuth init flow verified end-to-end (Connect Upstox button triggers /api/upstox/auth/url and successfully redirects to login.upstox.com). Cost KPIs render correctly (Gross +Rs.23,706, Costs -Rs.13,987, Net +Rs.9,719, drag -2.80%). Cost preset chips and sliders functional.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Simulator filters panel", "issues": ["Cost section label is 'TAX + SLIPPAGE / LEG' but data-testid is filter-cost-pct-per-leg-slider; consistent but minor: value shown as '0.25%' after Pessimistic preset — preset values look correct"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_upstox_and_costs.py",
+    "/app/test_reports/pytest/v3_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py: USER_ID hardcoded as 'default' — acceptable for single-user MVP but should be migrated to per-user auth before multi-user release.",
+    "upstox_client.py: Fernet key derived from API_SECRET via SHA-256 — fine for MVP, but rotating UPSTOX_API_SECRET will invalidate stored encrypted tokens (users must reconnect). Document this.",
+    "/api/upstox/orders/place audit log writes raw request to db.upstox_orders_log — verify no sensitive fields are leaked; currently only symbol/qty/etc which is fine.",
+    "Token expiry hardcoded at 24h in callback handler. Upstox v2 access tokens actually expire daily at 03:30 IST regardless of issue time — consider aligning instead of fixed 24h to avoid surprises."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_upstox_and_costs.py"
+  ],
+  "success_rate": {"backend": "100% (20/20)", "frontend": "100% (all required data-testids present, OAuth init works, cost UI works)"},
+  "test_credentials": "/app/memory/test_credentials.md not present — N/A for this app (single-user, OAuth-based; real Upstox login required which cannot be automated).",
+  "seed_data_creation": "None. Tests run against live yfinance + Upstox public instrument map.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend test suite at /app/backend/tests/test_upstox_and_costs.py covers: cost model (3 tests), upstox status/auth-url/instruments (5), 401 protection on funds/holdings/positions/orders/place/quote (6), order body validation 422 (3), callback redirect (2), disconnect idempotency (1). Run via: pytest /app/backend/tests/test_upstox_and_costs.py -v. Frontend /live page in disconnected state shows: upstox-status-text='Not Connected', upstox-connect-button, not-connected-hero, hero-connect-button. Order form (order-form-card) and Trade/Holdings/Positions/Orders tabs are conditionally rendered ONLY when status.connected=true (verified hidden when disconnected — correct). Connect button triggers GET /api/upstox/auth/url and redirects to https://login.upstox.com/ — full OAuth round-trip cannot be tested without real Upstox credentials. Simulator: Go Live button (data-testid='nav-go-live') in header → /live; KPI cards kpi-gross-pnl, kpi-total-costs, kpi-net-pnl all render with correct values; cost preset chips (cost-preset-zerobroker/realistic/pessimistic) and sliders (filter-brokerage-per-leg-slider, filter-cost-pct-per-leg-slider) all functional.",
+  "rca of the issue": "No bugs found."
+}

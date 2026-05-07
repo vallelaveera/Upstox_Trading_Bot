@@ -2,6 +2,7 @@ import "@/App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "sonner";
 import Simulator from "@/pages/Simulator";
+import LiveTrading from "@/pages/LiveTrading";
 
 function App() {
   return (
@@ -9,6 +10,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Simulator />} />
+          <Route path="/live" element={<LiveTrading />} />
         </Routes>
       </BrowserRouter>
       <Toaster
