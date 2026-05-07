@@ -495,3 +495,158 @@ async def manage_swing_positions(token: str, db, max_holding_days: int = 4) -> D
         "sold_count": sold,
         "actions": actions,
     }
+
+
+
+async def rearm_swing_exits(token: str, db) -> Dict:
+    """For every open swing position, ensure a SELL LIMIT (target) and SELL SL-M
+    (stop) exit order is currently active in Upstox order book.
+
+    Target/stop orders default to DAY validity → they auto-cancel at 15:30 IST.
+    Call this each morning to keep multi-day swing positions protected.
+
+    Behaviour per position:
+      * If target order is COMPLETE  → mark position 'target_hit' (closed).
+      * If stop order is COMPLETE   → mark position 'stop_hit' (closed).
+      * If either is missing/cancelled/rejected → place a fresh DAY exit at
+        the original target_price / stop_price stored on the position.
+      * If both are still active     → no-op.
+    """
+    today = datetime.now(timezone.utc)
+    open_positions = await db.swing_positions.find({"status": "open"}, {"_id": 0}).to_list(500)
+
+    try:
+        orders_resp = await ux.get_orders(token)
+        orders = orders_resp.get("data") or []
+    except Exception as e:
+        return {
+            "error": f"orders fetch failed: {str(e)[:160]}",
+            "checked_at": today.isoformat(),
+            "open_count": len(open_positions),
+            "rearmed_targets": 0,
+            "rearmed_stops": 0,
+            "actions": [],
+        }
+
+    by_id = {(o.get("order_id") or ""): o for o in orders if o.get("order_id")}
+
+    def _is_active(o: Optional[Dict]) -> bool:
+        if not o:
+            return False
+        s = (o.get("status") or "").lower()
+        # Upstox active states include: open, open pending, trigger pending,
+        # validation pending, after market order req received, modify pending
+        return ("open" in s) or ("trigger pending" in s) or ("pending" in s)
+
+    def _is_complete(o: Optional[Dict]) -> bool:
+        return bool(o) and (o.get("status") or "").lower() == "complete"
+
+    def _round_tick(p: float, tick: float = 0.05) -> float:
+        return round(round(p / tick) * tick, 2)
+
+    actions: List[Dict] = []
+    rearmed_targets = 0
+    rearmed_stops = 0
+
+    for pos in open_positions:
+        sym = pos["symbol"]
+        action: Dict = {"symbol": sym, "qty": pos["qty"], "rearmed": []}
+
+        # ---- Target leg ----
+        t_oid = pos.get("target_order_id")
+        t_order = by_id.get(t_oid) if t_oid else None
+        target_closed = False
+        if _is_complete(t_order):
+            await db.swing_positions.update_one(
+                {"symbol": sym, "buy_date": pos.get("buy_date")},
+                {"$set": {
+                    "status": "target_hit",
+                    "exit_date": today.isoformat(),
+                    "exit_reason": "target",
+                    "exit_order_id": t_oid,
+                }},
+            )
+            action["status"] = "target_hit"
+            target_closed = True
+        elif not _is_active(t_order):
+            # Re-arm target
+            try:
+                resp = await ux.place_order(
+                    token,
+                    instrument_key=pos["instrument_key"],
+                    quantity=pos["qty"],
+                    transaction_type="SELL",
+                    order_type="LIMIT",
+                    product=pos.get("product", "D"),
+                    price=_round_tick(float(pos["target_price"])),
+                    validity="DAY",
+                    tag=f"swing-target-rearm-{today.strftime('%Y%m%d')}",
+                )
+                new_oid = (resp.get("data") or {}).get("order_id")
+                await db.swing_positions.update_one(
+                    {"symbol": sym, "buy_date": pos.get("buy_date")},
+                    {"$set": {"target_order_id": new_oid, "target_rearmed_at": today.isoformat()}},
+                )
+                action["rearmed"].append({
+                    "type": "target", "order_id": new_oid, "price": pos["target_price"],
+                })
+                rearmed_targets += 1
+            except Exception as e:
+                action["rearmed"].append({"type": "target", "error": str(e)[:160]})
+
+        if target_closed:
+            actions.append(action)
+            continue
+
+        # ---- Stop leg ----
+        s_oid = pos.get("stop_order_id")
+        s_order = by_id.get(s_oid) if s_oid else None
+        if _is_complete(s_order):
+            await db.swing_positions.update_one(
+                {"symbol": sym, "buy_date": pos.get("buy_date")},
+                {"$set": {
+                    "status": "stop_hit",
+                    "exit_date": today.isoformat(),
+                    "exit_reason": "stop",
+                    "exit_order_id": s_oid,
+                }},
+            )
+            action["status"] = "stop_hit"
+            actions.append(action)
+            continue
+        elif not _is_active(s_order):
+            try:
+                resp = await ux.place_order(
+                    token,
+                    instrument_key=pos["instrument_key"],
+                    quantity=pos["qty"],
+                    transaction_type="SELL",
+                    order_type="SL-M",
+                    product=pos.get("product", "D"),
+                    trigger_price=_round_tick(float(pos["stop_price"])),
+                    validity="DAY",
+                    tag=f"swing-stop-rearm-{today.strftime('%Y%m%d')}",
+                )
+                new_oid = (resp.get("data") or {}).get("order_id")
+                await db.swing_positions.update_one(
+                    {"symbol": sym, "buy_date": pos.get("buy_date")},
+                    {"$set": {"stop_order_id": new_oid, "stop_rearmed_at": today.isoformat()}},
+                )
+                action["rearmed"].append({
+                    "type": "stop", "order_id": new_oid, "trigger_price": pos["stop_price"],
+                })
+                rearmed_stops += 1
+            except Exception as e:
+                action["rearmed"].append({"type": "stop", "error": str(e)[:160]})
+
+        if not action["rearmed"]:
+            action["status"] = action.get("status", "exits_active")
+        actions.append(action)
+
+    return {
+        "checked_at": today.isoformat(),
+        "open_count": len(open_positions),
+        "rearmed_targets": rearmed_targets,
+        "rearmed_stops": rearmed_stops,
+        "actions": actions,
+    }

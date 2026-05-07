@@ -49,7 +49,9 @@ export default function LiveTrading() {
   const [positions, setPositions] = useState([]);
   const [orders, setOrders] = useState([]);
   const [pnl, setPnl] = useState(null);
+  const [fees, setFees] = useState(null);
   const [managing, setManaging] = useState(false);
+  const [rearming, setRearming] = useState(false);
   const [params] = useSearchParams();
   const navigate = useNavigate();
 
@@ -79,18 +81,20 @@ export default function LiveTrading() {
     if (!status.connected) return;
     setLoading(true);
     try {
-      const [f, h, p, o, pl] = await Promise.allSettled([
+      const [f, h, p, o, pl, fe] = await Promise.allSettled([
         axios.get(`${API}/upstox/funds`),
         axios.get(`${API}/upstox/holdings`),
         axios.get(`${API}/upstox/positions`),
         axios.get(`${API}/upstox/orders`),
         axios.get(`${API}/upstox/dashboard/pnl`),
+        axios.get(`${API}/upstox/dashboard/fees`),
       ]);
       if (f.status === "fulfilled") setFunds(f.value.data?.data || null);
       if (h.status === "fulfilled") setHoldings(h.value.data?.data || []);
       if (p.status === "fulfilled") setPositions(p.value.data?.data || []);
       if (o.status === "fulfilled") setOrders(o.value.data?.data || []);
       if (pl.status === "fulfilled") setPnl(pl.value.data || null);
+      if (fe.status === "fulfilled") setFees(fe.value.data || null);
     } catch (e) {
       console.error(e);
     } finally {
@@ -115,6 +119,27 @@ export default function LiveTrading() {
       toast.error(`Manage failed: ${typeof msg === "string" ? msg : "unknown"}`);
     } finally {
       setManaging(false);
+    }
+  }, [refreshAll]);
+
+  const rearmExits = useCallback(async () => {
+    setRearming(true);
+    try {
+      const r = await axios.post(`${API}/upstox/strategy/rearm_exits`, null, { timeout: 90000 });
+      const rt = r.data?.rearmed_targets || 0;
+      const rs = r.data?.rearmed_stops || 0;
+      const checked = r.data?.open_count || 0;
+      if (rt + rs > 0) {
+        toast.success(`Re-armed ${rt} target + ${rs} stop orders across ${checked} swing positions`);
+      } else {
+        toast(`No re-arm needed · ${checked} positions, all exits active`);
+      }
+      refreshAll();
+    } catch (e) {
+      const msg = e?.response?.data?.detail || e.message;
+      toast.error(`Re-arm failed: ${typeof msg === "string" ? msg : "unknown"}`);
+    } finally {
+      setRearming(false);
     }
   }, [refreshAll]);
 
@@ -263,7 +288,14 @@ export default function LiveTrading() {
 
         {/* P&L Dashboard */}
         {status.connected && pnl && (
-          <PnLDashboard pnl={pnl} onManage={managePositions} managing={managing} />
+          <PnLDashboard
+            pnl={pnl}
+            fees={fees}
+            onManage={managePositions}
+            managing={managing}
+            onRearm={rearmExits}
+            rearming={rearming}
+          />
         )}
 
         {!status.connected ? (
@@ -339,11 +371,16 @@ export default function LiveTrading() {
   );
 }
 
-function PnLDashboard({ pnl, onManage, managing }) {
+function PnLDashboard({ pnl, fees, onManage, managing, onRearm, rearming }) {
   const h = pnl.holdings || {};
   const totalPnl = pnl.total_unrealized_pnl ?? 0;
   const positive = totalPnl >= 0;
   const dayPositive = (h.day_pnl ?? 0) >= 0;
+  const totalFees = fees?.total_fees ?? 0;
+  const tradedValue = fees?.traded_value ?? 0;
+  const feesPct = fees?.fees_pct_of_volume ?? 0;
+  const completed = fees?.completed_orders ?? 0;
+  const netAfterFees = totalPnl - totalFees;
   return (
     <div
       className="bg-[#0c0c0c] border border-white/10 rounded-xl p-5 md:p-6"
@@ -356,22 +393,38 @@ function PnLDashboard({ pnl, onManage, managing }) {
             Portfolio P&L
           </h3>
         </div>
-        <Button
-          onClick={onManage}
-          disabled={managing}
-          data-testid="manage-positions-button"
-          variant="outline"
-          className="bg-transparent border-[#E2FF00]/40 text-[#E2FF00] hover:bg-[#E2FF00]/10 hover:text-[#E2FF00]"
-        >
-          {managing ? (
-            <ArrowsClockwise size={14} weight="bold" className="mr-2 animate-spin" />
-          ) : (
-            <ShieldWarning size={14} weight="duotone" className="mr-2" />
-          )}
-          Manage Positions (4-day sweep)
-        </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            onClick={onRearm}
+            disabled={rearming}
+            data-testid="rearm-exits-button"
+            variant="outline"
+            className="bg-transparent border-[#00E676]/40 text-[#00E676] hover:bg-[#00E676]/10 hover:text-[#00E676]"
+          >
+            {rearming ? (
+              <ArrowsClockwise size={14} weight="bold" className="mr-2 animate-spin" />
+            ) : (
+              <Lightning size={14} weight="duotone" className="mr-2" />
+            )}
+            Re-Arm Today's Exits
+          </Button>
+          <Button
+            onClick={onManage}
+            disabled={managing}
+            data-testid="manage-positions-button"
+            variant="outline"
+            className="bg-transparent border-[#E2FF00]/40 text-[#E2FF00] hover:bg-[#E2FF00]/10 hover:text-[#E2FF00]"
+          >
+            {managing ? (
+              <ArrowsClockwise size={14} weight="bold" className="mr-2 animate-spin" />
+            ) : (
+              <ShieldWarning size={14} weight="duotone" className="mr-2" />
+            )}
+            Manage (4-day sweep)
+          </Button>
+        </div>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
         <PnLCard
           label="Total Unrealized P&L"
           value={`${positive ? "+" : ""}${inrFull(totalPnl)}`}
@@ -399,6 +452,17 @@ function PnLDashboard({ pnl, onManage, managing }) {
           sub={`Value ${inrFull(h.current_value ?? 0)}`}
           color="#A3A3A3"
           testid="pnl-invested"
+        />
+        <PnLCard
+          label="Fees Paid (today)"
+          value={`−${inrFull(totalFees)}`}
+          sub={
+            completed > 0
+              ? `${completed} fills · ${feesPct}% of ${inrFull(tradedValue)} · Net ${netAfterFees >= 0 ? "+" : ""}${inrFull(netAfterFees)}`
+              : "No fills today yet"
+          }
+          color="#FF6EC7"
+          testid="pnl-fees"
         />
       </div>
     </div>

@@ -49,6 +49,7 @@ export default function StrategyTab({ onOrdersPlaced }) {
     drop_max: 4.0,
     product: "D",
     min_mcap_cr: 5000,
+    max_price: 1000,
     target_pct: 3.0,
     stop_pct: 4.0,
     max_holding_days: 4,
@@ -126,6 +127,7 @@ export default function StrategyTab({ onOrdersPlaced }) {
           drop_max: config.drop_max,
           top_n: Math.max(config.slots * 2, 10),
           min_mcap_cr: config.min_mcap_cr,
+          max_price: config.max_price,
         },
         { timeout: 120000 }
       );
@@ -390,6 +392,50 @@ export default function StrategyTab({ onOrdersPlaced }) {
                 </button>
               ))}
             </div>
+          </div>
+          <div className="md:col-span-2 lg:col-span-2">
+            <Label className="text-[10px] font-semibold text-neutral-400 uppercase tracking-[0.18em] flex justify-between">
+              <span>Max Price / Share</span>
+              <span className="font-mono text-[#E2FF00]">
+                {config.max_price === 0 ? "any" : `≤ ₹${config.max_price.toLocaleString("en-IN")}`}
+              </span>
+            </Label>
+            <div className="mt-3">
+              <Slider
+                min={0}
+                max={10000}
+                step={100}
+                value={[config.max_price]}
+                onValueChange={(v) => update("max_price", v[0])}
+                data-testid="strategy-maxprice-slider"
+              />
+            </div>
+            <div className="flex gap-1.5 mt-2 flex-wrap">
+              {[
+                { l: "Any", v: 0 },
+                { l: "₹500", v: 500 },
+                { l: "₹1K", v: 1000 },
+                { l: "₹2K", v: 2000 },
+                { l: "₹5K", v: 5000 },
+              ].map((p) => (
+                <button
+                  key={p.l}
+                  type="button"
+                  onClick={() => update("max_price", p.v)}
+                  data-testid={`maxprice-preset-${p.v}`}
+                  className={`text-[10px] font-mono px-2 py-1 rounded border transition-colors ${
+                    config.max_price === p.v
+                      ? "border-[#E2FF00]/60 bg-[#E2FF00]/10 text-[#E2FF00]"
+                      : "border-white/10 text-neutral-400 hover:border-white/25"
+                  }`}
+                >
+                  {p.l}
+                </button>
+              ))}
+            </div>
+            <p className="text-[10px] text-neutral-500 mt-1.5 leading-snug">
+              Skip ultra-heavy stocks (MRF/PageInd) so capital fans across more slots.
+            </p>
           </div>
         </div>
 

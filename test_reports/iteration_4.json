@@ -1,0 +1,41 @@
+{
+  "summary": "V4 feature testing: max_price scan filter, /dashboard/fees, /strategy/rearm_exits, /diagnostic, and StrategyTab/LiveTrading UI hooks. Backend 6/6 pytest passed; frontend selectors all verified end-to-end with live Upstox connection. One backend bug found: /api/upstox/diagnostic queries wrong Mongo collection for token presence (always returns false).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "/api/upstox/diagnostic",
+        "issue": "upstox_token_present always returns false even when /api/upstox/status returns connected:true. server.py line 837 queries db.upstox_auth.find_one(...), but tokens are actually stored in db.upstox_tokens (see _get_active_token() at line 261-264 which queries db.upstox_tokens with {user_id, is_active:True}). All other diagnostic fields (egress_ip=34.16.56.64, instruments_loaded=9249, redirect_uri, checked_at, note) are correct."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_v4_features.py",
+    "/app/test_reports/pytest/v4_results.xml"
+  ],
+  "action_items": [
+    "Fix /api/upstox/diagnostic in server.py (~line 837): change `db.upstox_auth.find_one({}, {\"_id\": 0})` to query db.upstox_tokens with {user_id: USER_ID, is_active: True} (mirror _get_active_token logic). upstox_user should be sourced from the auth doc's stored profile if the schema includes it, else just call ux.get_profile(token) when token decrypts successfully."
+  ],
+  "critical_code_review_comments": [
+    "server.py line 837: diagnostic endpoint references non-existent collection upstox_auth — actual collection is upstox_tokens. Token-presence flag is silently always false. LOW severity (informational endpoint) but misleading for support/debug purposes — same egress IP feature still works.",
+    "server.py /api/upstox/dashboard/fees: GST currently only on (brokerage + exchange_charges). Per Indian regs this is correct (STT/stamp/SEBI excluded from GST base). Implementation matches Zerodha-style brokerage calculator. OK.",
+    "strategy_live.py rearm_swing_exits(): correctly handles all order states (open/pending/trigger pending/complete/missing). Reconciles target_hit/stop_hit before re-arming. Returns clean schema with actions[]. OK.",
+    "StrategyTab.jsx: max_price defaults to 1000 (sensible); presets 0/500/1K/2K/5K cover NSE typical price-tiers; label '≤ ₹{n}' renders correctly. UI is clean."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_v4_features.py",
+    "/app/test_reports/iteration_4.json"
+  ],
+  "success_rate": {"backend": "100% (6/6 pytest passed)", "frontend": "100% (all required testids present, rearm flow works end-to-end with toast)"},
+  "test_credentials": "/app/memory/test_credentials.md is empty — N/A. Upstox OAuth token for user 4PCBPF (Reddy Veera Vallela) already in DB (db.upstox_tokens), /api/upstox/status returns connected:true.",
+  "seed_data_creation": "None. Live Upstox order book used (5 BUY fills, ₹2,553 traded today).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "V4 backend test suite at /app/backend/tests/test_v4_features.py covers: (1) scan max_price=500 filters all candidates ltp<=500, (2) scan max_price=0 disables filter, (3) fees dashboard schema + GST/brokerage sanity, (4) rearm_exits returns proper {checked_at, open_count, rearmed_targets, rearmed_stops, actions[]} schema, (5) diagnostic returns egress_ip/instruments_loaded/redirect_uri (BUT upstox_token_present is buggy — always false due to wrong collection name), (6) /strategy/auto accepts max_price body without 422. Frontend /live page when connected: 'rearm-exits-button' button next to Manage Positions, 'pnl-fees' KPI card showing 'Fees Paid (today)' with breakdown. StrategyTab Apply Strategy tab: 'strategy-maxprice-slider' + 5 presets (maxprice-preset-{0,500,1000,2000,5000}) + default '≤ ₹1,000' label all rendered. Rearm POST returns 200 and shows sonner toast. Run via: pytest /app/backend/tests/test_v4_features.py -v. Pod egress IP=34.16.56.64.",
+  "rca of the issue": "BUG RCA — /api/upstox/diagnostic upstox_token_present incorrect: server.py:837 reads `db.upstox_auth.find_one(...)` but tokens are persisted in `db.upstox_tokens` (see _get_active_token() server.py:262 which uses `db.upstox_tokens.find_one({\"user_id\": USER_ID, \"is_active\": True})`). The collection name was likely typed by analogy with the env var prefix UPSTOX_AUTH or the OAuth callback name. Reproduction: GET /api/upstox/diagnostic while /api/upstox/status returns connected:true → response shows `\"upstox_token_present\": false, \"upstox_user\": null`. Mitigation: replace the query with `await db.upstox_tokens.find_one({\"user_id\": USER_ID, \"is_active\": True}, {\"_id\": 0})` and source profile from doc.get('profile') if persisted there, else from a quick ux.get_profile(decrypted_token) call. Other diagnostic fields verified working (egress_ip='34.16.56.64', instruments_loaded=9249)."
+}

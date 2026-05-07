@@ -7,6 +7,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 import uuid
+import httpx
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional
@@ -16,7 +17,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from universe import UNIVERSES, get_universe
 from simulator import run_simulation, run_compare, VALID_STRATEGIES
 import upstox_client as ux
-from strategy_live import scan_daily_dips, execute_picks, manage_swing_positions
+from strategy_live import scan_daily_dips, execute_picks, manage_swing_positions, rearm_swing_exits
 
 
 ROOT_DIR = Path(__file__).parent
@@ -603,6 +604,32 @@ async def upstox_manage_positions(max_holding_days: int = 4):
     return result
 
 
+@api_router.post("/upstox/strategy/rearm_exits")
+async def upstox_rearm_exits():
+    """Re-arm DAY-validity target/stop orders for open swing positions.
+    Target/stop orders auto-cancel at 15:30 IST — call this each market open
+    to keep multi-day swings protected. Also reconciles closed-by-target/stop
+    positions and marks them as exited in the DB."""
+    tok = await _require_token()
+    try:
+        result = await rearm_swing_exits(tok, db)
+    except Exception as e:
+        logger.exception("rearm failed")
+        raise HTTPException(status_code=502, detail=str(e))
+    await db.upstox_strategy_runs.insert_one(
+        {
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "mode": "rearm_exits",
+            "result_summary": {
+                "open_count": result.get("open_count"),
+                "rearmed_targets": result.get("rearmed_targets"),
+                "rearmed_stops": result.get("rearmed_stops"),
+            },
+        }
+    )
+    return result
+
+
 @api_router.get("/upstox/strategy/swing-positions")
 async def upstox_swing_positions():
     docs = await db.swing_positions.find({}, {"_id": 0}).sort("buy_date", -1).to_list(200)
@@ -785,6 +812,45 @@ async def upstox_auto_strategy(req: AutoStrategyRequest):
 async def upstox_strategy_runs():
     docs = await db.upstox_strategy_runs.find({}, {"_id": 0}).sort("ts", -1).to_list(20)
     return {"runs": docs}
+
+
+@api_router.get("/upstox/diagnostic")
+async def upstox_diagnostic():
+    """Show this pod's current public egress IP — paste it into Upstox app
+    'Allowed IPs' (Apps → Edit → Static IP) to unblock UDAPI1154 errors.
+    Also shows token presence + instrument map status for quick health checks."""
+    egress_ip = None
+    egress_err = None
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            r = await client.get("https://api.ipify.org?format=json")
+        if r.status_code == 200:
+            egress_ip = (r.json() or {}).get("ip")
+        else:
+            egress_err = f"ipify returned {r.status_code}"
+    except Exception as e:
+        egress_err = str(e)[:160]
+
+    has_token = False
+    profile_user = None
+    try:
+        doc = await db.upstox_auth.find_one({}, {"_id": 0})
+        if doc:
+            has_token = True
+            profile_user = (doc.get("profile") or {}).get("user_id") or (doc.get("profile") or {}).get("user_name")
+    except Exception:
+        pass
+
+    return {
+        "egress_ip": egress_ip,
+        "egress_err": egress_err,
+        "instruments_loaded": ux.instrument_count(),
+        "upstox_token_present": has_token,
+        "upstox_user": profile_user,
+        "redirect_uri": os.environ.get("UPSTOX_REDIRECT_URI"),
+        "checked_at": datetime.now(timezone.utc).isoformat(),
+        "note": "If Upstox UDAPI1154 (IP blocked) errors fire, paste egress_ip into the Upstox app's Allowed IPs whitelist.",
+    }
 
 
 app.include_router(api_router)
