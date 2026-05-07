@@ -29,6 +29,7 @@ export const UNIVERSE_OPTIONS = [
   { key: "nifty50", label: "Nifty 50", size: 50 },
   { key: "nifty100", label: "Nifty 100", size: 100 },
   { key: "nifty200", label: "Nifty 200", size: 216 },
+  { key: "nifty500", label: "Nifty 500", size: 470 },
 ];
 
 // Allocation presets — they set max_positions; per-slot is derived from capital

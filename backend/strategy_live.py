@@ -17,14 +17,15 @@ logger = logging.getLogger(__name__)
 
 
 def _fetch_recent_closes(universe_stocks: List[Dict]) -> Dict[str, Tuple[float, str]]:
-    """Get the most recent prior close for each stock via yfinance.
+    """Get the most recent prior trading-day close for each stock via yfinance.
+    Strictly excludes today's date so that drop% = (yesterday_close - today_LTP) / yesterday_close.
     Returns {symbol: (prev_close, prev_date_iso)}.
     """
     tickers = [yf_ticker(s["symbol"]) for s in universe_stocks]
     try:
         data = yf.download(
             tickers=tickers,
-            period="5d",
+            period="7d",
             interval="1d",
             group_by="ticker",
             auto_adjust=True,
@@ -39,6 +40,9 @@ def _fetch_recent_closes(universe_stocks: List[Dict]) -> Dict[str, Tuple[float, 
     if data is None or data.empty:
         return out
 
+    # Use IST today date (NSE timezone). yfinance returns dates as the local trading-day (Asia/Kolkata) for NSE.
+    today_str = pd.Timestamp.now(tz="Asia/Kolkata").strftime("%Y-%m-%d")
+
     for s in universe_stocks:
         sym = s["symbol"]
         tk = yf_ticker(sym)
@@ -51,9 +55,15 @@ def _fetch_recent_closes(universe_stocks: List[Dict]) -> Dict[str, Tuple[float, 
                 ser = data["Close"].dropna()
             if len(ser) < 1:
                 continue
-            # Use the latest available close as "prev" reference
-            prev_close = float(ser.iloc[-1])
-            prev_date = pd.Timestamp(ser.index[-1]).strftime("%Y-%m-%d")
+            # Strip today's bar if present (during open market it would be today's intraday close ≈ LTP)
+            ser_before_today = ser[ser.index.strftime("%Y-%m-%d") < today_str]
+            if len(ser_before_today) >= 1:
+                use = ser_before_today
+            else:
+                # fallback (e.g., delisted) — use whatever we have
+                use = ser
+            prev_close = float(use.iloc[-1])
+            prev_date = pd.Timestamp(use.index[-1]).strftime("%Y-%m-%d")
             out[sym] = (prev_close, prev_date)
         except Exception:
             continue

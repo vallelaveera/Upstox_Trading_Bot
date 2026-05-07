@@ -1,5 +1,6 @@
-"""NSE universe definitions: Nifty 50 / Nifty 100 / Nifty 200."""
+"""NSE universe definitions: Nifty 50 / Nifty 100 / Nifty 200 / Nifty 500."""
 from nifty50 import NIFTY_50
+from nifty500_extra import NIFTY_500_EXTRA
 
 # Nifty Next 50 (the 50 large-caps just outside Nifty 50). Together with Nifty 50 = Nifty 100.
 NIFTY_NEXT_50 = [
@@ -190,12 +191,14 @@ def _dedupe(lst):
 
 NIFTY_100 = _dedupe(NIFTY_50 + NIFTY_NEXT_50)
 NIFTY_200 = _dedupe(NIFTY_100 + NIFTY_MIDCAP_100)
+NIFTY_500 = _dedupe(NIFTY_200 + NIFTY_500_EXTRA)
 
 
 UNIVERSES = {
     "nifty50": ("Nifty 50", NIFTY_50),
     "nifty100": ("Nifty 100", NIFTY_100),
     "nifty200": ("Nifty 200", NIFTY_200),
+    "nifty500": ("Nifty 500", NIFTY_500),
 }
 
 

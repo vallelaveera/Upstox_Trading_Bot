@@ -43,8 +43,8 @@ export default function StrategyTab({ onOrdersPlaced }) {
   const [config, setConfig] = useState({
     capital: 50000,
     slots: 5,
-    universe: "nifty200",
-    drop_min: 2.0,
+    universe: "nifty500",
+    drop_min: 1.5,
     drop_max: 4.0,
     product: "D",
   });
