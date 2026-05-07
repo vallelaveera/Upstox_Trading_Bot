@@ -834,10 +834,13 @@ async def upstox_diagnostic():
     has_token = False
     profile_user = None
     try:
-        doc = await db.upstox_auth.find_one({}, {"_id": 0})
+        doc = await db.upstox_tokens.find_one(
+            {"user_id": USER_ID, "is_active": True}, {"_id": 0}
+        )
         if doc:
             has_token = True
-            profile_user = (doc.get("profile") or {}).get("user_id") or (doc.get("profile") or {}).get("user_name")
+            prof = doc.get("profile") or {}
+            profile_user = prof.get("user_name") or prof.get("user_id") or prof.get("email")
     except Exception:
         pass
 

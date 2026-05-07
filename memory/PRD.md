@@ -55,11 +55,33 @@ adjustable filters. Phase 2: live trading via Upstox API.
 - **Sizing controls**: max_picks_per_day cap, max_positions slider
 - 17/17 backend pytest tests passing, full frontend coverage verified
 
+## v3 Update (Feb 2026 — Live Upstox Trading)
+- Upstox OAuth (PKCE-style) wired with token-encryption-at-rest (Fernet, key=hash(api_secret))
+- Holdings, positions, orders, funds dashboards
+- **Apply Strategy** tab: live dip scanner over Nifty50/100/200/500 + Auto-Execute (manual or batched)
+- Auto-attached **Target (+3%)** & **Stop-Loss (-4%)** SELL orders on every BUY
+- **Manage Positions** sweeper: force-sells anything held ≥ N (4) days (`/api/upstox/strategy/manage`)
+- **P&L dashboard** card: Total Unrealized + Holdings + Today's Δ + Invested
+- Manual single-stock buy + single-stock dialog confirm
+- Sector + min market cap + market-price filters wired through scan + auto endpoints
+
+## v3.1 Update (Feb 2026 — Capital efficiency, exit safety, IP diagnostic)
+- **Max Price filter** on scanner (default ≤ ₹1000) — keeps capital from being trapped in MRF/PageInd
+  - Slider 0–₹10K + presets (Any/₹500/₹1K/₹2K/₹5K) in StrategyTab
+  - Backend `scan_daily_dips()` applies the cap before Top-N truncation so cheap dippers aren't crowded out
+- **Fees Paid (today)** card on PnLDashboard via `/api/upstox/dashboard/fees`
+  - Approximates brokerage (₹20/leg) + STT (0.1% sell) + exchange (0.00345%) + stamp (0.015% buy) + 18% GST
+  - Shows fees, % of traded value, and net-after-fees
+- **Re-Arm Today's Exits** button + `/api/upstox/strategy/rearm_exits` endpoint
+  - Reads open swing_positions, fetches current orderbook, reconciles target_hit/stop_hit, re-fires fresh DAY-validity SELL LIMIT (target) and SELL SL-M (stop) for any leg that's missing/cancelled/rejected/expired. Essential for multi-day swings (Upstox DAY orders auto-cancel at 15:30 IST)
+- **`/api/upstox/diagnostic`** endpoint exposes pod's egress IP (via api.ipify.org) + token-presence flag + redirect URI — paste IP into Upstox Allowed-IPs whitelist to unblock UDAPI1154 errors
+- Backend pytest: 6/6 V4 feature tests pass; frontend manual + automated UI tests verified all selectors render correctly
+
 ## Backlog
 ### P0 (next)
-- Upstox API integration scaffold (Phase 2 live trading)
 - Per-stock performance breakdown card
 - Save & re-load full simulation results (currently only KPIs persisted)
+- Sub-row auto-rearm scheduler (cron @ 09:16 IST every weekday)
 
 ### P1
 - Compare strategies side-by-side (A/B backtest)
@@ -68,9 +90,11 @@ adjustable filters. Phase 2: live trading via Upstox API.
 - TTL cache on yfinance fetches (reduce repeat-run latency)
 - Custom universe upload (Nifty Next 50, custom watchlist)
 - Sectoral allocation pie chart
+- Diagnostic UI panel (egress IP, token expiry, instrument count) accessible from header
 
 ### P2
 - User accounts & saved strategies
 - Alerts when live market hits dip threshold
 - Mobile-first responsive polish
 - Walk-forward optimization
+- DigitalOcean droplet migration scripts (Docker Compose + Nginx) for permanent static IP
