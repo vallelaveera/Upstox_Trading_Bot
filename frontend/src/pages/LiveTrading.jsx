@@ -989,6 +989,20 @@ function PositionsTable({ positions, swingMap }) {
       </div>
     );
   }
+  // Aggregate totals across all positions
+  let totalInvested = 0;
+  let totalValue = 0;
+  let totalPnl = 0;
+  for (const p of positions) {
+    const ltp = p.last_price ?? 0;
+    const avgEff = (p.average_price && p.average_price > 0)
+      ? p.average_price
+      : (p.buy_price || p.buy_average || p.day_buy_price || 0);
+    const qty = p.quantity ?? 0;
+    totalInvested += avgEff * qty;
+    totalValue += ltp * qty;
+    totalPnl += p.pnl ?? 0;
+  }
   return (
     <div className="bg-[#0c0c0c] border border-white/10 rounded-xl overflow-hidden" data-testid="positions-table">
       <table className="w-full text-sm font-mono">
@@ -999,6 +1013,8 @@ function PositionsTable({ positions, swingMap }) {
             <Th right>Qty</Th>
             <Th right>Avg</Th>
             <Th right>LTP</Th>
+            <Th right>Invested</Th>
+            <Th right>Value</Th>
             <Th right>To Target</Th>
             <Th right>To Stop</Th>
             <Th right>P&L</Th>
@@ -1013,6 +1029,9 @@ function PositionsTable({ positions, swingMap }) {
             const avg = (p.average_price && p.average_price > 0)
               ? p.average_price
               : (p.buy_price || p.buy_average || p.day_buy_price || 0);
+            const qty = p.quantity ?? 0;
+            const invested = avg * qty;
+            const value = ltp * qty;
             const pnlValue = p.pnl ?? 0;
             const swing = swingMap?.[sym];
             const targetPrice = swing?.target_price ?? avg * 1.05;
@@ -1032,9 +1051,16 @@ function PositionsTable({ positions, swingMap }) {
                   </div>
                 </Td>
                 <Td>{p.product}</Td>
-                <Td right>{p.quantity}</Td>
+                <Td right>{qty}</Td>
                 <Td right>{inrFull2(avg)}</Td>
                 <Td right>{inrFull2(ltp)}</Td>
+                <Td right data-testid={`pos-invested-${sym}`}>
+                  <div className="flex flex-col items-end">
+                    <span className="text-white">{inrFull2(invested)}</span>
+                    <span className="text-[9px] text-neutral-600">{qty} × {inrFull2(avg)}</span>
+                  </div>
+                </Td>
+                <Td right data-testid={`pos-value-${sym}`}>{inrFull2(value)}</Td>
                 <Td right data-testid={`pos-to-target-${sym}`}>
                   {avg > 0 && ltp > 0 ? (
                     <DistanceCell pct={toTargetPct} price={targetPrice} kind="target" />
@@ -1056,6 +1082,30 @@ function PositionsTable({ positions, swingMap }) {
             );
           })}
         </tbody>
+        <tfoot data-testid="positions-totals">
+          <tr className="border-t-2 border-[#E2FF00]/20 bg-[#E2FF00]/[0.03]">
+            <Td bold>
+              <span className="font-display uppercase tracking-wide text-[#E2FF00] text-xs">Total</span>
+            </Td>
+            <Td>
+              <span className="text-[10px] text-neutral-500 font-mono">{positions.length} pos</span>
+            </Td>
+            <Td right></Td>
+            <Td right></Td>
+            <Td right></Td>
+            <Td right bold>
+              <span className="text-white font-bold" data-testid="positions-total-invested">{inrFull2(totalInvested)}</span>
+            </Td>
+            <Td right bold>
+              <span className="text-white font-bold" data-testid="positions-total-value">{inrFull2(totalValue)}</span>
+            </Td>
+            <Td right></Td>
+            <Td right></Td>
+            <Td right bold style={{ color: totalPnl >= 0 ? "#00E676" : "#FF3B30" }}>
+              <span data-testid="positions-total-pnl">{totalPnl >= 0 ? "+" : ""}{inrFull2(totalPnl)}</span>
+            </Td>
+          </tr>
+        </tfoot>
       </table>
     </div>
   );
