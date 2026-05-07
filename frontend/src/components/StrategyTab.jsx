@@ -47,6 +47,7 @@ export default function StrategyTab({ onOrdersPlaced }) {
     drop_min: 1.5,
     drop_max: 4.0,
     product: "D",
+    min_mcap_cr: 5000,
   });
   const [scanning, setScanning] = useState(false);
   const [executing, setExecuting] = useState(false);
@@ -71,6 +72,7 @@ export default function StrategyTab({ onOrdersPlaced }) {
           drop_min: config.drop_min,
           drop_max: config.drop_max,
           top_n: Math.max(config.slots * 2, 10),
+          min_mcap_cr: config.min_mcap_cr,
         },
         { timeout: 120000 }
       );
@@ -133,6 +135,7 @@ export default function StrategyTab({ onOrdersPlaced }) {
           drop_min: config.drop_min,
           drop_max: config.drop_max,
           product: config.product,
+          min_mcap_cr: config.min_mcap_cr,
         },
         { timeout: 180000 }
       );
@@ -291,6 +294,47 @@ export default function StrategyTab({ onOrdersPlaced }) {
               />
             </div>
           </div>
+          <div className="md:col-span-2 lg:col-span-2">
+            <Label className="text-[10px] font-semibold text-neutral-400 uppercase tracking-[0.18em] flex justify-between">
+              <span>Min Market Cap</span>
+              <span className="font-mono text-[#E2FF00]">
+                {config.min_mcap_cr === 0 ? "any" : `≥ ₹${config.min_mcap_cr.toLocaleString("en-IN")} Cr`}
+              </span>
+            </Label>
+            <div className="mt-3">
+              <Slider
+                min={0}
+                max={50000}
+                step={500}
+                value={[config.min_mcap_cr]}
+                onValueChange={(v) => update("min_mcap_cr", v[0])}
+                data-testid="strategy-mcap-slider"
+              />
+            </div>
+            <div className="flex gap-1.5 mt-2">
+              {[
+                { l: "Any", v: 0 },
+                { l: "1K Cr", v: 1000 },
+                { l: "5K Cr", v: 5000 },
+                { l: "20K Cr", v: 20000 },
+                { l: "1L Cr", v: 100000 },
+              ].map((p) => (
+                <button
+                  key={p.l}
+                  type="button"
+                  onClick={() => update("min_mcap_cr", p.v)}
+                  data-testid={`mcap-preset-${p.v}`}
+                  className={`text-[10px] font-mono px-2 py-1 rounded border transition-colors ${
+                    config.min_mcap_cr === p.v
+                      ? "border-[#E2FF00]/60 bg-[#E2FF00]/10 text-[#E2FF00]"
+                      : "border-white/10 text-neutral-400 hover:border-white/25"
+                  }`}
+                >
+                  {p.l}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Auto mode toggle */}
@@ -388,11 +432,13 @@ export default function StrategyTab({ onOrdersPlaced }) {
                   <tr className="border-b border-white/10 bg-white/[0.02]">
                     <Th>#</Th>
                     <Th>Stock</Th>
-                    <Th right>Prev Close</Th>
+                    <Th right>MCap</Th>
+                    <Th right>Prev</Th>
                     <Th right>LTP</Th>
-                    <Th right>Drop</Th>
-                    <Th right>Qty (est)</Th>
-                    <Th right>Cost (est)</Th>
+                    <Th right>1d Drop</Th>
+                    <Th right>5d Δ</Th>
+                    <Th right>Qty</Th>
+                    <Th right>Cost</Th>
                     <Th right>Action</Th>
                   </tr>
                 </thead>
@@ -401,6 +447,7 @@ export default function StrategyTab({ onOrdersPlaced }) {
                     const inSlot = i < config.slots;
                     const qty = Math.floor(perSlot / c.ltp);
                     const cost = qty * c.ltp;
+                    const wkDrop = c.weekly_drop_pct ?? 0;
                     return (
                       <tr
                         key={c.symbol}
@@ -422,10 +469,23 @@ export default function StrategyTab({ onOrdersPlaced }) {
                             </span>
                           </div>
                         </Td>
+                        <Td right>
+                          {c.market_cap_cr ? (
+                            <span className={mcapTier(c.market_cap_cr).color}>
+                              {fmtMcap(c.market_cap_cr)}
+                            </span>
+                          ) : (
+                            <span className="text-neutral-600">—</span>
+                          )}
+                        </Td>
                         <Td right>{inrFull2(c.prev_close)}</Td>
                         <Td right>{inrFull2(c.ltp)}</Td>
                         <Td right style={{ color: "#FF3B30" }} bold>
                           −{c.drop_pct}%
+                        </Td>
+                        <Td right style={{ color: wkDrop > 0 ? "#FF3B30" : wkDrop < 0 ? "#00E676" : "#A3A3A3" }}>
+                          {wkDrop > 0 ? "−" : wkDrop < 0 ? "+" : ""}
+                          {Math.abs(wkDrop).toFixed(2)}%
                         </Td>
                         <Td right>{qty || "—"}</Td>
                         <Td right>{cost > 0 ? inrFull2(cost) : "—"}</Td>
@@ -629,4 +689,19 @@ function Td({ children, right, style, bold }) {
       {children}
     </td>
   );
+}
+
+function fmtMcap(cr) {
+  if (!cr) return "—";
+  if (cr >= 100000) return `₹${(cr / 100000).toFixed(2)}L Cr`;
+  if (cr >= 1000) return `₹${(cr / 1000).toFixed(2)}K Cr`;
+  return `₹${cr.toFixed(0)} Cr`;
+}
+
+function mcapTier(cr) {
+  // Visual hint: large cap >= 20K Cr (purple), mid 5–20K (yellow), small 1–5K (orange), micro <1K (red)
+  if (cr >= 20000) return { tier: "Large", color: "text-[#A78BFA]" };
+  if (cr >= 5000) return { tier: "Mid", color: "text-[#E2FF00]" };
+  if (cr >= 1000) return { tier: "Small", color: "text-[#FFA940]" };
+  return { tier: "Micro", color: "text-[#FF3B30]" };
 }

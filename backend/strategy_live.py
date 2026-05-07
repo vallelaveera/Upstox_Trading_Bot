@@ -1,6 +1,7 @@
 """Live strategy scanning + execution using Upstox API."""
 from __future__ import annotations
 
+import concurrent.futures
 import logging
 import math
 from datetime import datetime, timezone
@@ -16,16 +17,16 @@ import upstox_client as ux
 logger = logging.getLogger(__name__)
 
 
-def _fetch_recent_closes(universe_stocks: List[Dict]) -> Dict[str, Tuple[float, str]]:
-    """Get the most recent prior trading-day close for each stock via yfinance.
-    Strictly excludes today's date so that drop% = (yesterday_close - today_LTP) / yesterday_close.
-    Returns {symbol: (prev_close, prev_date_iso)}.
+def _fetch_recent_closes(universe_stocks: List[Dict]) -> Dict[str, Dict]:
+    """Get prior trading-day close + 5-trading-days-ago close for each stock.
+    Strictly excludes today's date so that drop% = (prev_close - LTP) / prev_close.
+    Returns {symbol: {prev_close, prev_date, week_ago_close, week_ago_date}}.
     """
     tickers = [yf_ticker(s["symbol"]) for s in universe_stocks]
     try:
         data = yf.download(
             tickers=tickers,
-            period="7d",
+            period="14d",
             interval="1d",
             group_by="ticker",
             auto_adjust=True,
@@ -36,11 +37,10 @@ def _fetch_recent_closes(universe_stocks: List[Dict]) -> Dict[str, Tuple[float, 
         logger.exception(f"yfinance fetch failed: {e}")
         return {}
 
-    out: Dict[str, Tuple[float, str]] = {}
+    out: Dict[str, Dict] = {}
     if data is None or data.empty:
         return out
 
-    # Use IST today date (NSE timezone). yfinance returns dates as the local trading-day (Asia/Kolkata) for NSE.
     today_str = pd.Timestamp.now(tz="Asia/Kolkata").strftime("%Y-%m-%d")
 
     for s in universe_stocks:
@@ -55,18 +55,48 @@ def _fetch_recent_closes(universe_stocks: List[Dict]) -> Dict[str, Tuple[float, 
                 ser = data["Close"].dropna()
             if len(ser) < 1:
                 continue
-            # Strip today's bar if present (during open market it would be today's intraday close ≈ LTP)
             ser_before_today = ser[ser.index.strftime("%Y-%m-%d") < today_str]
-            if len(ser_before_today) >= 1:
-                use = ser_before_today
-            else:
-                # fallback (e.g., delisted) — use whatever we have
-                use = ser
+            use = ser_before_today if len(ser_before_today) >= 1 else ser
             prev_close = float(use.iloc[-1])
             prev_date = pd.Timestamp(use.index[-1]).strftime("%Y-%m-%d")
-            out[sym] = (prev_close, prev_date)
+            # 5 trading days ago — index -6 (or earliest available)
+            wk_idx = -6 if len(use) >= 6 else 0
+            week_ago_close = float(use.iloc[wk_idx])
+            week_ago_date = pd.Timestamp(use.index[wk_idx]).strftime("%Y-%m-%d")
+            out[sym] = {
+                "prev_close": prev_close,
+                "prev_date": prev_date,
+                "week_ago_close": week_ago_close,
+                "week_ago_date": week_ago_date,
+            }
         except Exception:
             continue
+    return out
+
+
+def _fetch_market_caps(symbols: List[str]) -> Dict[str, Optional[float]]:
+    """Fetch market cap (in INR) for given NSE symbols in parallel via yfinance."""
+    def _one(sym: str) -> Tuple[str, Optional[float]]:
+        try:
+            t = yf.Ticker(yf_ticker(sym))
+            mc = None
+            try:
+                mc = t.fast_info.get("market_cap")
+            except Exception:
+                pass
+            if not mc:
+                try:
+                    mc = t.info.get("marketCap")
+                except Exception:
+                    pass
+            return sym, float(mc) if mc else None
+        except Exception:
+            return sym, None
+
+    out: Dict[str, Optional[float]] = {}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=12) as ex:
+        for sym, mc in ex.map(_one, symbols):
+            out[sym] = mc
     return out
 
 
@@ -77,6 +107,7 @@ async def scan_daily_dips(
     drop_max: float = 4.0,
     top_n: int = 20,
     sectors: Optional[List[str]] = None,
+    min_mcap_cr: float = 0.0,  # filter out stocks below this market cap (in ₹ crores)
 ) -> Dict:
     """Scan for stocks dropping `drop_min`–`drop_max`% today.
     Combines yfinance (yesterday's close) + Upstox LTP (live price)."""
@@ -84,7 +115,7 @@ async def scan_daily_dips(
     if sectors:
         universe_stocks = [s for s in universe_stocks if s["sector"] in sectors]
 
-    # 1) prior closes from yfinance
+    # 1) prior closes from yfinance (incl. 5-day-ago close)
     closes = _fetch_recent_closes(universe_stocks)
     if not closes:
         return {"error": "No yfinance data", "candidates": []}
@@ -101,8 +132,7 @@ async def scan_daily_dips(
         inst_meta[ux_inst["instrument_key"]] = {
             **s,
             **ux_inst,
-            "prev_close": closes[s["symbol"]][0],
-            "prev_date": closes[s["symbol"]][1],
+            **closes[s["symbol"]],
         }
         keys.append(ux_inst["instrument_key"])
 
@@ -119,7 +149,6 @@ async def scan_daily_dips(
         except Exception as e:
             logger.warning(f"LTP batch failed: {e}")
 
-    # 4) Upstox returns keys like "NSE_EQ:RELIANCE" — index by instrument_token
     by_token: Dict[str, Dict] = {}
     for _k, v in quotes_data.items():
         tok_id = v.get("instrument_token") or v.get("instrument_key")
@@ -140,6 +169,8 @@ async def scan_daily_dips(
         drop_pct = (prev - ltp) / prev * 100.0
         if not (drop_min <= drop_pct <= drop_max):
             continue
+        wk = meta.get("week_ago_close") or 0
+        weekly_drop_pct = ((wk - ltp) / wk * 100.0) if wk > 0 else 0.0
         candidates.append(
             {
                 "symbol": meta["symbol"],
@@ -151,11 +182,34 @@ async def scan_daily_dips(
                 "ltp": round(ltp, 2),
                 "drop_pct": round(drop_pct, 2),
                 "drop_inr": round(prev - ltp, 2),
+                "weekly_drop_pct": round(weekly_drop_pct, 2),
+                "week_ago_close": round(wk, 2),
+                "week_ago_date": meta.get("week_ago_date"),
             }
         )
 
     candidates.sort(key=lambda c: c["drop_pct"], reverse=True)
     candidates = candidates[: max(1, top_n)]
+
+    # 4) fetch market caps for the (now-small) candidate list in parallel
+    if candidates:
+        try:
+            mcaps = _fetch_market_caps([c["symbol"] for c in candidates])
+        except Exception as e:
+            logger.warning(f"market cap fetch failed: {e}")
+            mcaps = {}
+        for c in candidates:
+            mc = mcaps.get(c["symbol"])
+            c["market_cap"] = mc
+            c["market_cap_cr"] = round(mc / 1e7, 2) if mc else None  # ₹ in crores
+        # 5) optional market-cap filter
+        if min_mcap_cr > 0:
+            before = len(candidates)
+            candidates = [
+                c for c in candidates
+                if (c.get("market_cap_cr") or 0) >= min_mcap_cr
+            ]
+            logger.info(f"mcap filter ≥ {min_mcap_cr} Cr: {before} → {len(candidates)}")
 
     return {
         "scanned_at": datetime.now(timezone.utc).isoformat(),

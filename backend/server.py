@@ -490,6 +490,7 @@ class ScanRequest(BaseModel):
     drop_max: float = Field(default=4.0, ge=0, le=30)
     top_n: int = Field(default=20, ge=1, le=50)
     sectors: Optional[List[str]] = None
+    min_mcap_cr: float = Field(default=0.0, ge=0, le=10000000)
 
 
 class ExecuteRequest(BaseModel):
@@ -509,6 +510,7 @@ class AutoStrategyRequest(BaseModel):
     product: str = Field(default="D", pattern="^(D|I)$")
     sectors: Optional[List[str]] = None
     skip_held: bool = Field(default=True)
+    min_mcap_cr: float = Field(default=0.0, ge=0, le=10000000)
 
 
 @api_router.post("/upstox/scan")
@@ -524,6 +526,7 @@ async def upstox_scan(req: ScanRequest):
             drop_max=req.drop_max,
             top_n=req.top_n,
             sectors=req.sectors,
+            min_mcap_cr=req.min_mcap_cr,
         )
     except Exception as e:
         logger.exception("scan failed")
@@ -583,6 +586,7 @@ async def upstox_auto_strategy(req: AutoStrategyRequest):
             drop_max=req.drop_max,
             top_n=req.slots,
             sectors=req.sectors,
+            min_mcap_cr=req.min_mcap_cr,
         )
         if scan.get("error"):
             raise HTTPException(status_code=502, detail=scan["error"])
