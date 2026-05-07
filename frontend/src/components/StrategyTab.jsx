@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import {
@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -56,9 +57,58 @@ export default function StrategyTab({ onOrdersPlaced }) {
   const [warningOpen, setWarningOpen] = useState(false);
   const [confirmOneOpen, setConfirmOneOpen] = useState(null);
   const [executionResult, setExecutionResult] = useState(null);
+  const [selected, setSelected] = useState(new Set());
 
   const update = (k, v) => setConfig((c) => ({ ...c, [k]: v }));
   const perSlot = config.capital / Math.max(1, config.slots);
+
+  // Auto-preselect top N candidates whenever scan completes
+  useEffect(() => {
+    if (scanResult?.candidates?.length) {
+      const top = scanResult.candidates
+        .slice(0, config.slots)
+        .map((c) => c.symbol);
+      setSelected(new Set(top));
+    } else {
+      setSelected(new Set());
+    }
+  }, [scanResult, config.slots]);
+
+  const toggleSelect = (symbol) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(symbol)) {
+        next.delete(symbol);
+      } else {
+        if (next.size >= config.slots) {
+          toast.error(`Slot cap reached (${config.slots}). Deselect one first.`);
+          return prev;
+        }
+        next.add(symbol);
+      }
+      return next;
+    });
+  };
+
+  const selectTopN = () => {
+    if (!scanResult?.candidates) return;
+    setSelected(
+      new Set(scanResult.candidates.slice(0, config.slots).map((c) => c.symbol))
+    );
+  };
+  const clearAll = () => setSelected(new Set());
+
+  const selectedPicks = useMemo(() => {
+    if (!scanResult?.candidates) return [];
+    return scanResult.candidates.filter((c) => selected.has(c.symbol));
+  }, [scanResult, selected]);
+
+  const totalSelectedCost = useMemo(() => {
+    return selectedPicks.reduce((s, c) => {
+      const qty = Math.floor(perSlot / c.ltp);
+      return s + qty * c.ltp;
+    }, 0);
+  }, [selectedPicks, perSlot]);
 
   // SCAN
   const runScan = async () => {
@@ -88,19 +138,18 @@ export default function StrategyTab({ onOrdersPlaced }) {
     }
   };
 
-  // MANUAL EXECUTE — fires for the candidates currently in scanResult
+  // MANUAL EXECUTE — fires for the SELECTED candidates
   const executeAll = async () => {
-    if (!scanResult?.candidates?.length) {
-      toast.error("Run a scan first");
+    if (selectedPicks.length === 0) {
+      toast.error("Select at least one stock");
       return;
     }
     setExecuting(true);
     try {
-      const picks = scanResult.candidates.slice(0, config.slots);
       const r = await axios.post(
         `${API}/upstox/strategy/execute`,
         {
-          candidates: picks,
+          candidates: selectedPicks,
           capital: config.capital,
           slots: config.slots,
           product: config.product,
@@ -120,29 +169,29 @@ export default function StrategyTab({ onOrdersPlaced }) {
     }
   };
 
-  // AUTO — scan + execute in one shot, NO per-stock confirmation
+  // AUTO — uses the user's CURRENT selection (no per-stock confirmation)
   const autoExecute = async () => {
     setWarningOpen(false);
+    if (selectedPicks.length === 0) {
+      toast.error("Select stocks first");
+      return;
+    }
     setExecuting(true);
     setExecutionResult(null);
     try {
       const r = await axios.post(
-        `${API}/upstox/strategy/auto`,
+        `${API}/upstox/strategy/execute`,
         {
+          candidates: selectedPicks,
           capital: config.capital,
           slots: config.slots,
-          universe: config.universe,
-          drop_min: config.drop_min,
-          drop_max: config.drop_max,
           product: config.product,
-          min_mcap_cr: config.min_mcap_cr,
         },
         { timeout: 180000 }
       );
-      setScanResult(r.data.scan);
-      setExecutionResult(r.data.execution);
+      setExecutionResult(r.data);
       toast.success(
-        `AUTO done · ${r.data.execution.placed} placed · ${r.data.execution.failed} failed`
+        `AUTO done · ${r.data.placed} placed · ${r.data.failed} failed`
       );
       onOrdersPlaced?.();
     } catch (e) {
@@ -379,17 +428,17 @@ export default function StrategyTab({ onOrdersPlaced }) {
             {autoMode ? (
               <Button
                 onClick={() => setWarningOpen(true)}
-                disabled={scanning || executing}
+                disabled={scanning || executing || selectedPicks.length === 0}
                 data-testid="auto-execute-button"
                 className="bg-[#FF3B30] hover:bg-[#E03028] text-white font-bold tracking-wide"
               >
                 <Robot size={16} weight="fill" className="mr-2" />
-                Auto-Execute Top {config.slots}
+                Auto-Execute Selected ({selectedPicks.length})
               </Button>
             ) : (
               <Button
                 onClick={executeAll}
-                disabled={!scanResult || executing}
+                disabled={!scanResult || executing || selectedPicks.length === 0}
                 data-testid="execute-button"
                 className="bg-[#E2FF00] hover:bg-[#CBE600] text-black font-bold tracking-wide"
               >
@@ -398,7 +447,7 @@ export default function StrategyTab({ onOrdersPlaced }) {
                 ) : (
                   <Lightning size={16} weight="fill" className="mr-2" />
                 )}
-                Execute Top {config.slots}
+                Execute Selected ({selectedPicks.length})
               </Button>
             )}
           </div>
@@ -411,15 +460,42 @@ export default function StrategyTab({ onOrdersPlaced }) {
           className="bg-[#0c0c0c] border border-white/10 rounded-xl overflow-hidden"
           data-testid="scan-results-card"
         >
-          <div className="p-5 md:p-6 border-b border-white/5 flex justify-between items-center flex-wrap gap-2">
+          <div className="p-5 md:p-6 border-b border-white/5 flex justify-between items-center flex-wrap gap-3">
             <div>
               <h3 className="font-display font-bold text-lg uppercase tracking-tight">
                 Today's Candidates
               </h3>
               <p className="text-xs text-neutral-500 font-mono mt-1">
-                {scanResult.count} stocks · scanned {new Date(scanResult.scanned_at).toLocaleTimeString()} · top {config.slots} will be bought
+                {scanResult.count} stocks · scanned {new Date(scanResult.scanned_at).toLocaleTimeString()} · pick up to {config.slots} to execute
               </p>
             </div>
+            {scanResult.candidates.length > 0 && (
+              <div className="flex items-center gap-3 flex-wrap">
+                <Badge
+                  variant="outline"
+                  className="border-[#E2FF00]/40 text-[#E2FF00] bg-[#E2FF00]/5 font-mono"
+                  data-testid="selection-summary"
+                >
+                  {selectedPicks.length}/{config.slots} selected · {inrFull(totalSelectedCost)}
+                </Badge>
+                <button
+                  type="button"
+                  onClick={selectTopN}
+                  data-testid="select-top-n"
+                  className="text-[11px] font-mono text-neutral-400 hover:text-[#E2FF00] underline-offset-4 hover:underline"
+                >
+                  Pick top {config.slots} by drop
+                </button>
+                <button
+                  type="button"
+                  onClick={clearAll}
+                  data-testid="select-clear"
+                  className="text-[11px] font-mono text-neutral-400 hover:text-[#FF3B30] underline-offset-4 hover:underline"
+                >
+                  Clear
+                </button>
+              </div>
+            )}
           </div>
           {scanResult.candidates.length === 0 ? (
             <div className="p-12 text-center text-neutral-500 font-mono text-sm">
@@ -430,6 +506,7 @@ export default function StrategyTab({ onOrdersPlaced }) {
               <table className="w-full text-sm font-mono">
                 <thead>
                   <tr className="border-b border-white/10 bg-white/[0.02]">
+                    <Th>Pick</Th>
                     <Th>#</Th>
                     <Th>Stock</Th>
                     <Th right>MCap</Th>
@@ -444,7 +521,7 @@ export default function StrategyTab({ onOrdersPlaced }) {
                 </thead>
                 <tbody>
                   {scanResult.candidates.map((c, i) => {
-                    const inSlot = i < config.slots;
+                    const isSel = selected.has(c.symbol);
                     const qty = Math.floor(perSlot / c.ltp);
                     const cost = qty * c.ltp;
                     const wkDrop = c.weekly_drop_pct ?? 0;
@@ -452,12 +529,21 @@ export default function StrategyTab({ onOrdersPlaced }) {
                       <tr
                         key={c.symbol}
                         className={`border-b border-white/5 hover:bg-white/[0.02] ${
-                          inSlot ? "bg-[#E2FF00]/[0.03]" : "opacity-50"
+                          isSel ? "bg-[#E2FF00]/[0.05]" : ""
                         }`}
                         data-testid={`candidate-row-${c.symbol}`}
                       >
                         <Td>
-                          <span className={`font-bold ${inSlot ? "text-[#E2FF00]" : "text-neutral-500"}`}>
+                          <Checkbox
+                            checked={isSel}
+                            onCheckedChange={() => toggleSelect(c.symbol)}
+                            disabled={executing || (qty <= 0)}
+                            data-testid={`select-${c.symbol}`}
+                            className="border-white/30 data-[state=checked]:bg-[#E2FF00] data-[state=checked]:border-[#E2FF00] data-[state=checked]:text-black"
+                          />
+                        </Td>
+                        <Td>
+                          <span className={`font-bold ${isSel ? "text-[#E2FF00]" : "text-neutral-500"}`}>
                             {i + 1}
                           </span>
                         </Td>
@@ -490,7 +576,7 @@ export default function StrategyTab({ onOrdersPlaced }) {
                         <Td right>{qty || "—"}</Td>
                         <Td right>{cost > 0 ? inrFull2(cost) : "—"}</Td>
                         <Td right>
-                          {inSlot && qty > 0 && (
+                          {qty > 0 && (
                             <button
                               onClick={() => setConfirmOneOpen(c)}
                               data-testid={`buy-one-${c.symbol}`}
@@ -550,10 +636,11 @@ export default function StrategyTab({ onOrdersPlaced }) {
             <Button
               onClick={autoExecute}
               data-testid="auto-confirm-button"
+              disabled={selectedPicks.length === 0}
               className="bg-[#FF3B30] hover:bg-[#E03028] text-white font-bold"
             >
               <Robot size={16} weight="fill" className="mr-2" />
-              FIRE {config.slots} ORDERS
+              FIRE {selectedPicks.length} ORDERS
             </Button>
           </DialogFooter>
         </DialogContent>
