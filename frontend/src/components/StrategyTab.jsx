@@ -50,8 +50,8 @@ export default function StrategyTab({ onOrdersPlaced }) {
     product: "D",
     min_mcap_cr: 5000,
     max_price: 1000,
-    target_pct: 3.0,
-    stop_pct: 4.0,
+    target_pct: 5.0,
+    stop_pct: 3.0,
     max_holding_days: 4,
   });
   const [scanning, setScanning] = useState(false);

@@ -501,8 +501,8 @@ class ExecuteRequest(BaseModel):
     slots: int = Field(..., ge=1, le=20)
     product: str = Field(default="D", pattern="^(D|I)$")
     skip_held: bool = Field(default=True)
-    target_pct: float = Field(default=3.0, ge=0.5, le=30)
-    stop_pct: float = Field(default=4.0, ge=0.5, le=30)
+    target_pct: float = Field(default=5.0, ge=0.5, le=30)
+    stop_pct: float = Field(default=3.0, ge=0.5, le=30)
     max_holding_days: int = Field(default=4, ge=1, le=30)
     place_exits: bool = Field(default=True)
 
@@ -518,8 +518,8 @@ class AutoStrategyRequest(BaseModel):
     skip_held: bool = Field(default=True)
     min_mcap_cr: float = Field(default=0.0, ge=0, le=10000000)
     max_price: float = Field(default=0.0, ge=0, le=1000000)
-    target_pct: float = Field(default=3.0, ge=0.5, le=30)
-    stop_pct: float = Field(default=4.0, ge=0.5, le=30)
+    target_pct: float = Field(default=5.0, ge=0.5, le=30)
+    stop_pct: float = Field(default=3.0, ge=0.5, le=30)
     max_holding_days: int = Field(default=4, ge=1, le=30)
     place_exits: bool = Field(default=True)
 

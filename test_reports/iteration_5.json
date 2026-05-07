@@ -1,0 +1,47 @@
+{
+  "summary": "V5 testing: new exit defaults (target 3->5%, stop 4->3%) + new To Target / To Stop columns on Holdings & Positions tables + DistanceCell + SWG badges. Backend 3/3 passed (1 skipped due to ingress not proxying /openapi.json — runtime defaults still verified via auto-strategy echo). Frontend Strategy sliders default to +5%/-3% (aria-valuenow confirmed). Positions tab renders to-target/to-stop cells with both percentage and price; SWG badges visible on all 4 expected swing symbols (PCJEWELLER, IOC, GREAVESCOT, NHPC). Holdings tab is empty in production (0 settled holdings — only intraday positions exist), so distance cells could not be visually verified there but code path is identical to PositionsTable.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "DistanceCell (PositionsTable)",
+        "issue": "When Upstox position returns avg_price=0 (BPCL, AARTIIND, FIVESTAR, KALYANKJIL, HINDPETRO observed), the cell computes target=0*1.05=0 and stop=0*0.97=0, so distance vs LTP is always -100% → renders 'HIT +100.00% @ ₹0.00' (green) on target and '-100.00% @ ₹0.00' (red) on stop. Misleading. Suggest suppressing the distance cell (render '—') when buy_price/avg <= 0, OR use position.last_price as fallback only when symbol is in swingMap so only real swing rows show distances.",
+        "selector": "[data-testid^=\"pos-to-target-\"]",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_v5_thresholds.py",
+    "/app/test_reports/pytest/v5_results.xml"
+  ],
+  "action_items": [
+    "DistanceCell: hide / render '—' when buy_price (avg) is 0 or when row is not a swing position with stored target/stop. Currently shows misleading 'HIT +100%' / '-100%' for ordinary intraday positions where Upstox returns avg=0.",
+    "Optional: gate To Target / To Stop cells to only render when swingMap[sym] exists, since for non-swing rows we don't know the user's intended exit prices."
+  ],
+  "critical_code_review_comments": [
+    "LiveTrading.jsx DistanceCell (line 945): no guard for price <= 0 / NaN inputs. When avg=0, distPct=-100 always — UI ends up loud and wrong on holdings/positions that aren't true swings.",
+    "LiveTrading.jsx HoldingsTable + PositionsTable derive targetPrice from `swingMap[sym]?.target_price ?? avg*(1+target_pct/100)` style — for non-swing rows this falls back to a hard-coded 5%/3% off avg. If avg is missing/zero this is meaningless. The fallback should be skipped (cell shows '—') when row is not a swing.",
+    "Backend defaults flip is clean: ExecuteRequest 5.0/3.0, AutoStrategyRequest 5.0/3.0, execute_picks() signature 5.0/3.0. Auto endpoint echo confirmed live: target_pct=5.0, stop_pct=3.0.",
+    "swing-positions schema correct: all 4 open positions have target>buy and stop<buy; required keys (symbol, target_price, stop_price, buy_price, qty, status) all present."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_v5_thresholds.py",
+    "/app/test_reports/iteration_5.json"
+  ],
+  "success_rate": {
+    "backend": "100% (3/3 passed; 1 skipped due to ingress not proxying /openapi.json — defaults verified through runtime echo)",
+    "frontend": "90% (sliders, SWG badges, swing distance cells all working; one UX polish issue on non-swing rows with avg=0)"
+  },
+  "test_credentials": "Upstox token live in db.upstox_tokens for user 4PCBPF (Reddy Veera Vallela). /api/upstox/status connected:true.",
+  "seed_data_creation": "None. Used existing 4 open swing positions in db.swing_positions: PCJEWELLER (target 9.7 / stop 9.05), IOC (149.6 / 139.45), GREAVESCOT (174.7 / 162.8), NHPC (84.4 / 78.65).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "V5 test suite at /app/backend/tests/test_v5_thresholds.py covers: openapi defaults (skipped — ingress restricts), swing-positions schema with required fields, auto-strategy endpoint accepting payload without target_pct/stop_pct (echoes 5.0/3.0). Frontend: Apply Strategy tab → target slider aria-valuenow=5, stop slider aria-valuenow=3. Positions tab visually verified — to-target / to-stop testids present per row; SWG badges on PCJEWELLER, IOC, GREAVESCOT, NHPC. Holdings tab is empty (0 settled stocks) so distance cells not visually verifiable there. Egress IP 34.16.56.64.",
+  "rca of the issue": "DistanceCell renders misleading '+100% / -100%' for non-swing positions because: (1) PositionsTable computes targetPrice/stopPrice via fallback `avg * (1 + target_pct/100)` and `avg * (1 - stop_pct/100)`. (2) When Upstox returns avg_price=0 (which happens for some intraday positions and on T+0 fills before settlement), targetPrice and stopPrice both compute to 0. (3) DistanceCell then computes distPct = (target_or_stop - ltp) / ltp * 100, giving -100% for both. (4) For target kind, distPct<=0 → green 'HIT +100%'. For stop kind, distPct<=0 → red 'HIT -100%'. Mitigation: in HoldingsTable / PositionsTable, before invoking DistanceCell, check `if (!swing && (avg <= 0 || !avg)) render '—'`. Or simpler: only render cells when `swingMap[sym]` exists, since percentages without a real exit anchor aren't actionable."
+}

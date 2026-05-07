@@ -50,6 +50,7 @@ export default function LiveTrading() {
   const [orders, setOrders] = useState([]);
   const [pnl, setPnl] = useState(null);
   const [fees, setFees] = useState(null);
+  const [swingMap, setSwingMap] = useState({});
   const [managing, setManaging] = useState(false);
   const [rearming, setRearming] = useState(false);
   const [params] = useSearchParams();
@@ -81,13 +82,14 @@ export default function LiveTrading() {
     if (!status.connected) return;
     setLoading(true);
     try {
-      const [f, h, p, o, pl, fe] = await Promise.allSettled([
+      const [f, h, p, o, pl, fe, sw] = await Promise.allSettled([
         axios.get(`${API}/upstox/funds`),
         axios.get(`${API}/upstox/holdings`),
         axios.get(`${API}/upstox/positions`),
         axios.get(`${API}/upstox/orders`),
         axios.get(`${API}/upstox/dashboard/pnl`),
         axios.get(`${API}/upstox/dashboard/fees`),
+        axios.get(`${API}/upstox/strategy/swing-positions`),
       ]);
       if (f.status === "fulfilled") setFunds(f.value.data?.data || null);
       if (h.status === "fulfilled") setHoldings(h.value.data?.data || []);
@@ -95,6 +97,13 @@ export default function LiveTrading() {
       if (o.status === "fulfilled") setOrders(o.value.data?.data || []);
       if (pl.status === "fulfilled") setPnl(pl.value.data || null);
       if (fe.status === "fulfilled") setFees(fe.value.data || null);
+      if (sw.status === "fulfilled") {
+        const m = {};
+        for (const pos of (sw.value.data?.positions || [])) {
+          if (pos.status === "open") m[(pos.symbol || "").toUpperCase()] = pos;
+        }
+        setSwingMap(m);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -356,10 +365,10 @@ export default function LiveTrading() {
             </TabsContent>
 
             <TabsContent value="holdings">
-              <HoldingsTable holdings={holdings} />
+              <HoldingsTable holdings={holdings} swingMap={swingMap} />
             </TabsContent>
             <TabsContent value="positions">
-              <PositionsTable positions={positions} />
+              <PositionsTable positions={positions} swingMap={swingMap} />
             </TabsContent>
             <TabsContent value="orders">
               <OrdersTable orders={orders} onCancel={refreshAll} />
@@ -850,7 +859,7 @@ function KV({ k, v, accent }) {
   );
 }
 
-function HoldingsTable({ holdings }) {
+function HoldingsTable({ holdings, swingMap }) {
   if (!holdings || holdings.length === 0) {
     return (
       <div className="bg-[#0c0c0c] border border-white/10 rounded-xl p-12 text-center text-neutral-500" data-testid="holdings-empty">
@@ -870,11 +879,14 @@ function HoldingsTable({ holdings }) {
             <Th right>LTP</Th>
             <Th right>Day Δ</Th>
             <Th right>Total Δ</Th>
+            <Th right>To Target</Th>
+            <Th right>To Stop</Th>
             <Th right>Value</Th>
           </tr>
         </thead>
         <tbody>
           {holdings.map((h, i) => {
+            const sym = (h.tradingsymbol || h.trading_symbol || "").toUpperCase();
             const ltp = h.last_price ?? 0;
             const avg = h.average_price ?? 0;
             const qty = h.quantity ?? 0;
@@ -883,9 +895,23 @@ function HoldingsTable({ holdings }) {
             const dayChg = h.day_change ?? 0;
             const dayChgPct = h.day_change_percentage ?? 0;
             const value = ltp * qty;
+            const swing = swingMap?.[sym];
+            const targetPrice = swing?.target_price ?? avg * 1.05;
+            const stopPrice = swing?.stop_price ?? avg * 0.97;
+            const toTargetPct = ltp > 0 ? ((targetPrice - ltp) / ltp) * 100 : 0;
+            const toStopPct = ltp > 0 ? ((ltp - stopPrice) / ltp) * 100 : 0;
             return (
-              <tr key={i} className="border-b border-white/5 hover:bg-white/[0.02]" data-testid={`holding-row-${h.tradingsymbol}`}>
-                <Td>{h.tradingsymbol || h.trading_symbol}</Td>
+              <tr key={i} className="border-b border-white/5 hover:bg-white/[0.02]" data-testid={`holding-row-${sym}`}>
+                <Td>
+                  <div className="flex items-center gap-2">
+                    <span>{sym}</span>
+                    {swing && (
+                      <Badge variant="outline" className="border-[#E2FF00]/30 text-[#E2FF00] bg-[#E2FF00]/5 font-mono text-[9px] uppercase px-1.5 py-0">
+                        SWG
+                      </Badge>
+                    )}
+                  </div>
+                </Td>
                 <Td right>{qty}</Td>
                 <Td right>{inrFull2(avg)}</Td>
                 <Td right>{inrFull2(ltp)}</Td>
@@ -895,17 +921,54 @@ function HoldingsTable({ holdings }) {
                 <Td right style={{ color: totalChg >= 0 ? "#00E676" : "#FF3B30" }} bold>
                   {totalChg >= 0 ? "+" : ""}{inrFull2(totalChg)} ({pct(totalChgPct)})
                 </Td>
+                <Td right data-testid={`to-target-${sym}`}>
+                  <DistanceCell pct={toTargetPct} price={targetPrice} kind="target" />
+                </Td>
+                <Td right data-testid={`to-stop-${sym}`}>
+                  <DistanceCell pct={toStopPct} price={stopPrice} kind="stop" />
+                </Td>
                 <Td right>{inrFull(value)}</Td>
               </tr>
             );
           })}
         </tbody>
       </table>
+      <div className="px-4 py-2 border-t border-white/5 text-[10px] font-mono text-neutral-500 flex items-center gap-3 flex-wrap">
+        <span><span className="text-[#E2FF00]">SWG</span> = swing position with stored target/stop</span>
+        <span>·</span>
+        <span>Otherwise: target = avg × 1.05, stop = avg × 0.97 (default)</span>
+      </div>
     </div>
   );
 }
 
-function PositionsTable({ positions }) {
+function DistanceCell({ pct: distPct, price, kind }) {
+  // For target: positive = how much LTP needs to rise (green if close, dim if far)
+  // For stop: positive = cushion above stop (green if big cushion, red if near)
+  const reachable = Math.abs(distPct) < 0.5; // already at threshold
+  let color, label;
+  if (kind === "target") {
+    if (distPct <= 0) { color = "#00E676"; label = `HIT +${Math.abs(distPct).toFixed(2)}%`; }
+    else if (distPct < 1) color = "#00E676";
+    else if (distPct < 3) color = "#E2FF00";
+    else color = "#A3A3A3";
+    if (distPct > 0) label = `+${distPct.toFixed(2)}%`;
+  } else {
+    if (distPct <= 0) { color = "#FF3B30"; label = `HIT −${Math.abs(distPct).toFixed(2)}%`; }
+    else if (distPct < 1) color = "#FF3B30";
+    else if (distPct < 3) color = "#FFA940";
+    else color = "#00E676";
+    if (distPct > 0) label = `−${distPct.toFixed(2)}%`;
+  }
+  return (
+    <div className="flex flex-col items-end" title={`Trigger ₹${price?.toFixed?.(2) ?? "—"}`}>
+      <span style={{ color }} className={`font-bold ${reachable ? "animate-pulse" : ""}`}>{label}</span>
+      <span className="text-[9px] text-neutral-600">@ {inrFull2(price)}</span>
+    </div>
+  );
+}
+
+function PositionsTable({ positions, swingMap }) {
   if (!positions || positions.length === 0) {
     return (
       <div className="bg-[#0c0c0c] border border-white/10 rounded-xl p-12 text-center text-neutral-500" data-testid="positions-empty">
@@ -923,21 +986,46 @@ function PositionsTable({ positions }) {
             <Th right>Qty</Th>
             <Th right>Avg</Th>
             <Th right>LTP</Th>
+            <Th right>To Target</Th>
+            <Th right>To Stop</Th>
             <Th right>P&L</Th>
           </tr>
         </thead>
         <tbody>
           {positions.map((p, i) => {
-            const pnl = p.pnl ?? 0;
+            const sym = (p.tradingsymbol || p.trading_symbol || "").toUpperCase();
+            const ltp = p.last_price ?? 0;
+            const avg = p.average_price ?? 0;
+            const pnlValue = p.pnl ?? 0;
+            const swing = swingMap?.[sym];
+            const targetPrice = swing?.target_price ?? avg * 1.05;
+            const stopPrice = swing?.stop_price ?? avg * 0.97;
+            const toTargetPct = ltp > 0 ? ((targetPrice - ltp) / ltp) * 100 : 0;
+            const toStopPct = ltp > 0 ? ((ltp - stopPrice) / ltp) * 100 : 0;
             return (
               <tr key={i} className="border-b border-white/5 hover:bg-white/[0.02]" data-testid={`position-row-${i}`}>
-                <Td>{p.tradingsymbol || p.trading_symbol}</Td>
+                <Td>
+                  <div className="flex items-center gap-2">
+                    <span>{sym}</span>
+                    {swing && (
+                      <Badge variant="outline" className="border-[#E2FF00]/30 text-[#E2FF00] bg-[#E2FF00]/5 font-mono text-[9px] uppercase px-1.5 py-0">
+                        SWG
+                      </Badge>
+                    )}
+                  </div>
+                </Td>
                 <Td>{p.product}</Td>
                 <Td right>{p.quantity}</Td>
-                <Td right>{inrFull2(p.average_price ?? 0)}</Td>
-                <Td right>{inrFull2(p.last_price ?? 0)}</Td>
-                <Td right style={{ color: pnl >= 0 ? "#00E676" : "#FF3B30" }} bold>
-                  {pnl >= 0 ? "+" : ""}{inrFull2(pnl)}
+                <Td right>{inrFull2(avg)}</Td>
+                <Td right>{inrFull2(ltp)}</Td>
+                <Td right data-testid={`pos-to-target-${sym}`}>
+                  <DistanceCell pct={toTargetPct} price={targetPrice} kind="target" />
+                </Td>
+                <Td right data-testid={`pos-to-stop-${sym}`}>
+                  <DistanceCell pct={toStopPct} price={stopPrice} kind="stop" />
+                </Td>
+                <Td right style={{ color: pnlValue >= 0 ? "#00E676" : "#FF3B30" }} bold>
+                  {pnlValue >= 0 ? "+" : ""}{inrFull2(pnlValue)}
                 </Td>
               </tr>
             );
