@@ -42,6 +42,19 @@ adjustable filters. Phase 2: live trading via Upstox API.
 - All elements have `data-testid` attributes
 - 9/9 backend pytest tests passing, frontend smoke tested
 
+## v2 Update (Feb 2026 — multi-strategy)
+- **4 trigger types**: `daily_drop` (default), `peak_dip`, `weekly_drop`, `consecutive_down`
+- **3 universes**: Nifty 50 / Nifty 100 / Nifty 200 (216 stocks)
+- **Time-based exit**: `max_holding_days` (default 4) — force-sells stocks that don't recover in N days
+- **True capital rotation**: per-slot allocation = available_cash / free_slots, recomputed daily
+- **5 allocation presets**: Concentrated, Balanced (default), Diversified, Spray, Sniper
+- **Compare 5 strategies side-by-side** via new `POST /api/compare` (single shared data fetch)
+  - Multi-line equity chart, head-to-head matrix with winner trophy
+  - 5 quick-add presets (Daily 20×₹25K, Daily 40×₹12.5K, PeakDip 20, Sniper 5×₹1L, Weekly Drop)
+- **Extra KPIs**: avg_holding_days, max_drawdown_pct, exits target/stoploss/time breakdown
+- **Sizing controls**: max_picks_per_day cap, max_positions slider
+- 17/17 backend pytest tests passing, full frontend coverage verified
+
 ## Backlog
 ### P0 (next)
 - Upstox API integration scaffold (Phase 2 live trading)

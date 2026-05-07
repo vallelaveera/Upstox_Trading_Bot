@@ -536,4 +536,22 @@ def run_compare(
         "universe": universe,
         "weeks": weeks,
         "capital": capital,
+        "sim_start": _shared_sim_start(results),
+        "sim_end": _shared_sim_end(results),
     }
+
+
+def _shared_sim_start(results):
+    for r in results:
+        ec = r.get("equity_curve") or []
+        if ec:
+            return ec[0].get("date")
+    return None
+
+
+def _shared_sim_end(results):
+    for r in results:
+        ec = r.get("equity_curve") or []
+        if ec:
+            return ec[-1].get("date")
+    return None
