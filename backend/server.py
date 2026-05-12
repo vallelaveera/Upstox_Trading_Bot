@@ -30,9 +30,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-mongo_url = os.environ["MONGO_URL"]
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ["DB_NAME"]]
+db = None
+_mongo_url = os.environ.get("MONGO_URL")
+if _mongo_url:
+    _mongo_client = AsyncIOMotorClient(_mongo_url)
+    db = _mongo_client[os.environ.get("DB_NAME", "signalforge")]
+else:
+    logger.warning("MONGO_URL not set — simulation history will not be persisted")
 
 app = FastAPI(title="NSE Swing Trading Simulator")
 api_router = APIRouter(prefix="/api")
@@ -199,9 +203,10 @@ async def simulate(req: SimulationRequest):
         raise HTTPException(status_code=502, detail=result["error"])
 
     record = SimulationRecord(params=result.get("params", {}), kpis=result.get("kpis", {}))
-    doc = record.model_dump()
-    doc["created_at"] = doc["created_at"].isoformat()
-    await db.simulations.insert_one(doc)
+    if db is not None:
+        doc = record.model_dump()
+        doc["created_at"] = doc["created_at"].isoformat()
+        await db.simulations.insert_one(doc)
     result["run_id"] = record.id
     return result
 
@@ -233,6 +238,8 @@ async def compare(req: CompareRequest):
 
 @api_router.get("/simulations")
 async def list_simulations():
+    if db is None:
+        return {"simulations": []}
     docs = (
         await db.simulations.find({}, {"_id": 0})
         .sort("created_at", -1)
