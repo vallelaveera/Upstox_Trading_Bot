@@ -19,6 +19,7 @@ from universe import UNIVERSES, get_universe
 from simulator import run_simulation, run_compare, VALID_STRATEGIES
 import upstox_client as ux
 from strategy_live import scan_daily_dips, execute_picks, manage_swing_positions, rearm_swing_exits
+from rag_store import query as rag_query, structured_context, ingest
 
 
 ROOT_DIR = Path(__file__).parent
@@ -992,6 +993,72 @@ async def upstox_diagnostic():
         "checked_at": datetime.now(timezone.utc).isoformat(),
         "note": "If Upstox UDAPI1154 (IP blocked) errors fire, paste egress_ip into the Upstox app's Allowed IPs whitelist.",
     }
+
+
+# ------------ RAG chat ------------
+
+class ChatRequest(BaseModel):
+    question: str
+    symbol: Optional[str] = None
+
+
+@api_router.post("/chat")
+async def chat(req: ChatRequest):
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY not configured")
+
+    symbol = (req.symbol or "").upper().strip() or None
+
+    rag_results = await run_in_threadpool(rag_query, req.question, symbol, 8)
+    rag_text = "\n".join(
+        f"[{r['date']} | {r['symbol']} | {r['type']}] {r['text']}"
+        for r in rag_results
+    )
+
+    extra = ""
+    if symbol:
+        extra = await run_in_threadpool(structured_context, symbol, req.question)
+
+    system_prompt = (
+        "You are a financial research assistant for SignalForge, an NSE swing-trading platform. "
+        "You have access to 5 years of historical daily, weekly, and monthly price data for Indian stocks. "
+        "Answer concisely. When citing specific events always mention the date. "
+        "If data is missing say so rather than guessing."
+    )
+
+    context_block = f"=== RAG Context ===\n{rag_text}"
+    if extra:
+        context_block += f"\n\n{extra}"
+
+    import anthropic
+    client_ai = anthropic.Anthropic(api_key=api_key)
+    response = client_ai.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=1024,
+        system=system_prompt,
+        messages=[{
+            "role": "user",
+            "content": f"{context_block}\n\n=== Question ===\n{req.question}",
+        }],
+    )
+
+    return {
+        "answer": response.content[0].text,
+        "sources": rag_results[:5],
+    }
+
+
+@api_router.post("/chat/ingest")
+async def chat_ingest(body: dict):
+    """Ingest a stock's 5yr history into the RAG store."""
+    symbol = (body.get("symbol") or "").upper().strip()
+    if not symbol:
+        raise HTTPException(status_code=400, detail="symbol required")
+    from nifty50 import yf_ticker
+    ticker_ns = yf_ticker(symbol)
+    count = await run_in_threadpool(ingest, symbol, ticker_ns)
+    return {"symbol": symbol, "chunks": count}
 
 
 app.include_router(api_router)

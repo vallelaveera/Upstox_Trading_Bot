@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "sonner";
 import Simulator from "@/pages/Simulator";
 import LiveTrading from "@/pages/LiveTrading";
+import Chat from "@/pages/Chat";
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Simulator />} />
           <Route path="/live" element={<LiveTrading />} />
+          <Route path="/chat" element={<Chat />} />
         </Routes>
       </BrowserRouter>
       <Toaster

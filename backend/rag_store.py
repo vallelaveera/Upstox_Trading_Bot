@@ -1,6 +1,7 @@
 """RAG store: ingest 5-year OHLCV history as text chunks into Qdrant."""
 from __future__ import annotations
 
+import re
 import uuid
 import logging
 from datetime import datetime, timezone, timedelta
@@ -197,3 +198,101 @@ def query(question: str, symbol: str = None, top_k: int = 5) -> list[dict]:
         with_payload=True,
     )
     return [{"score": round(h.score, 3), **h.payload} for h in result.points]
+
+
+# ------------ structured pattern analysis ------------
+
+def _scroll_all(symbol: str, chunk_type: str) -> list[dict]:
+    """Retrieve every stored chunk of a given type for a symbol."""
+    client = _get_client()
+    _ensure_collection()
+    filt = Filter(must=[
+        FieldCondition(key="symbol", match=MatchValue(value=symbol)),
+        FieldCondition(key="type",   match=MatchValue(value=chunk_type)),
+    ])
+    results, offset = [], None
+    while True:
+        batch, offset = client.scroll(
+            collection_name=COLLECTION,
+            scroll_filter=filt,
+            limit=500,
+            offset=offset,
+            with_payload=True,
+        )
+        results.extend(p.payload for p in batch)
+        if offset is None:
+            break
+    return sorted(results, key=lambda x: x["date"])
+
+
+def find_dip_and_recovery(
+    symbol: str,
+    min_drop_pct: float = 5.0,
+    recovery_weeks: int = 6,
+) -> list[dict]:
+    """
+    Scan weekly chunks for symbol and find weeks where the stock dropped
+    >= min_drop_pct%, then recovered (cumulative gain >= 50% of the drop)
+    within recovery_weeks weeks.  Returns events sorted oldest→newest.
+    """
+    weekly = _scroll_all(symbol, "weekly")
+    events = []
+    for i, week in enumerate(weekly):
+        m = re.search(r"lost (\d+\.?\d*)%", week["text"])
+        if not m or float(m.group(1)) < min_drop_pct:
+            continue
+        drop_pct = float(m.group(1))
+        target = drop_pct * 0.5          # need to recover at least half
+        cumulative = 0.0
+        recovery_week = None
+        for j in range(i + 1, min(i + 1 + recovery_weeks, len(weekly))):
+            gm = re.search(r"gained (\d+\.?\d*)%", weekly[j]["text"])
+            if gm:
+                cumulative += float(gm.group(1))
+            if cumulative >= target:
+                recovery_week = weekly[j]
+                break
+        if recovery_week:
+            events.append({
+                "symbol": symbol,
+                "drop_week": week["date"],
+                "drop_pct": drop_pct,
+                "drop_text": week["text"],
+                "recovery_week": recovery_week["date"],
+                "cumulative_recovery_pct": round(cumulative, 2),
+                "recovery_text": recovery_week["text"],
+            })
+    return events
+
+
+def structured_context(symbol: str, question: str) -> str:
+    """
+    Return extra structured context for a question if it matches known
+    pattern types (dip+recovery, best/worst month, etc.).
+    """
+    q = question.lower()
+    parts = []
+
+    # dip-and-recovery pattern
+    drop_match = re.search(r"(\d+)\s*%", q)
+    if any(w in q for w in ("fall", "fell", "drop", "crash", "recover", "bounce")):
+        thresh = float(drop_match.group(1)) if drop_match else 5.0
+        events = find_dip_and_recovery(symbol, min_drop_pct=thresh)
+        if events:
+            last = events[-1]
+            all_dates = ", ".join(e["drop_week"] for e in events[-5:])
+            parts.append(
+                f"STRUCTURED ANALYSIS — {symbol} dip≥{thresh}% + recovery events:\n"
+                f"Most recent: dropped {last['drop_pct']}% week of {last['drop_week']}, "
+                f"recovered {last['cumulative_recovery_pct']}% by {last['recovery_week']}.\n"
+                f"Recent drop dates: {all_dates}.\n"
+                f"Drop detail: {last['drop_text']}\n"
+                f"Recovery detail: {last['recovery_text']}"
+            )
+        else:
+            parts.append(
+                f"STRUCTURED ANALYSIS: No weeks found where {symbol} dropped ≥{thresh}% "
+                f"and subsequently recovered within 6 weeks."
+            )
+
+    return "\n\n".join(parts)
