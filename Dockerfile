@@ -10,8 +10,8 @@ RUN npm run build
 # Stage 2: Python backend — serves API + the compiled React app
 FROM python:3.11-slim
 WORKDIR /app
-COPY backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY backend/requirements-prod.txt .
+RUN pip install --no-cache-dir -r requirements-prod.txt
 COPY backend/ .
 # Copy React build output into backend/static so FastAPI can serve it
 COPY --from=frontend /build/build ./static
