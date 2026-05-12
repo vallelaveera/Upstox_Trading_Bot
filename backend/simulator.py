@@ -73,20 +73,36 @@ def _close_series(data: pd.DataFrame, ticker: str) -> Optional[pd.Series]:
 
 
 def _fetch_history(universe_stocks: List[Dict], weeks: int) -> pd.DataFrame:
+    import logging
+    logger = logging.getLogger(__name__)
     tickers = [yf_ticker(s["symbol"]) for s in universe_stocks]
     end = datetime.now(timezone.utc)
     start = end - timedelta(days=weeks * 7 + 60)
-    data = yf.download(
-        tickers=tickers,
-        start=start.strftime("%Y-%m-%d"),
-        end=(end + timedelta(days=1)).strftime("%Y-%m-%d"),
-        interval="1d",
-        group_by="ticker",
-        auto_adjust=True,
-        progress=False,
-        threads=True,
-    )
-    return data
+    session = None
+    try:
+        from curl_cffi import requests as cffi_requests
+        session = cffi_requests.Session(impersonate="chrome")
+    except Exception:
+        pass
+    try:
+        kwargs = dict(
+            tickers=tickers,
+            start=start.strftime("%Y-%m-%d"),
+            end=(end + timedelta(days=1)).strftime("%Y-%m-%d"),
+            interval="1d",
+            group_by="ticker",
+            auto_adjust=True,
+            progress=False,
+            threads=True,
+        )
+        if session is not None:
+            kwargs["session"] = session
+        data = yf.download(**kwargs)
+        logger.info("yfinance returned shape: %s, tickers: %d", data.shape, len(tickers))
+        return data
+    except Exception as e:
+        logger.error("yfinance download failed: %s", e)
+        return pd.DataFrame()
 
 
 def _build_series_map(
