@@ -72,37 +72,60 @@ def _close_series(data: pd.DataFrame, ticker: str) -> Optional[pd.Series]:
         return None
 
 
+def _fetch_one(session, ticker: str, start: datetime, end: datetime) -> Optional[pd.DataFrame]:
+    s = int(start.timestamp())
+    e = int(end.timestamp())
+    url = (
+        f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
+        f"?interval=1d&period1={s}&period2={e}"
+    )
+    try:
+        r = session.get(url, timeout=15)
+        if r.status_code != 200:
+            return None
+        result = r.json()["chart"]["result"][0]
+        timestamps = result["timestamp"]
+        closes = result["indicators"]["quote"][0]["close"]
+        opens = result["indicators"]["quote"][0].get("open", [None] * len(closes))
+        highs = result["indicators"]["quote"][0].get("high", [None] * len(closes))
+        lows = result["indicators"]["quote"][0].get("low", [None] * len(closes))
+        volumes = result["indicators"]["quote"][0].get("volume", [None] * len(closes))
+        idx = pd.to_datetime(timestamps, unit="s", utc=True).normalize()
+        df = pd.DataFrame(
+            {"Open": opens, "High": highs, "Low": lows, "Close": closes, "Volume": volumes},
+            index=idx,
+        )
+        return df.dropna(subset=["Close"])
+    except Exception:
+        return None
+
+
 def _fetch_history(universe_stocks: List[Dict], weeks: int) -> pd.DataFrame:
     import logging
     logger = logging.getLogger(__name__)
     tickers = [yf_ticker(s["symbol"]) for s in universe_stocks]
     end = datetime.now(timezone.utc)
     start = end - timedelta(days=weeks * 7 + 60)
-    session = None
-    try:
-        from curl_cffi import requests as cffi_requests
-        session = cffi_requests.Session(impersonate="chrome")
-    except Exception:
-        pass
-    try:
-        kwargs = dict(
-            tickers=tickers,
-            start=start.strftime("%Y-%m-%d"),
-            end=(end + timedelta(days=1)).strftime("%Y-%m-%d"),
-            interval="1d",
-            group_by="ticker",
-            auto_adjust=True,
-            progress=False,
-            threads=True,
-        )
-        if session is not None:
-            kwargs["session"] = session
-        data = yf.download(**kwargs)
-        logger.info("yfinance returned shape: %s, tickers: %d", data.shape, len(tickers))
-        return data
-    except Exception as e:
-        logger.error("yfinance download failed: %s", e)
+
+    from curl_cffi import requests as cffi_requests
+    session = cffi_requests.Session(impersonate="chrome")
+
+    frames = {}
+    for ticker in tickers:
+        df = _fetch_one(session, ticker, start, end)
+        if df is not None and not df.empty:
+            frames[ticker] = df
+
+    if not frames:
+        logger.error("No data fetched for any ticker (%d attempted)", len(tickers))
         return pd.DataFrame()
+
+    combined = pd.concat(frames, axis=1)
+    combined.columns = pd.MultiIndex.from_tuples(
+        [(ticker, col) for ticker, col in combined.columns]
+    )
+    logger.info("Fetched %d/%d tickers, shape %s", len(frames), len(tickers), combined.shape)
+    return combined
 
 
 def _build_series_map(
