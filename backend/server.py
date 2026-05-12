@@ -1,6 +1,7 @@
 from fastapi import FastAPI, APIRouter, HTTPException
 from fastapi.concurrency import run_in_threadpool
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -987,6 +988,19 @@ async def upstox_diagnostic():
 
 
 app.include_router(api_router)
+
+# Serve the compiled React frontend (present in Docker image, absent in dev)
+_static = ROOT_DIR / "static"
+if _static.exists():
+    app.mount("/static", StaticFiles(directory=str(_static / "static")), name="react-assets")
+
+    @app.get("/{full_path:path}")
+    async def _spa(full_path: str):
+        fp = _static / full_path
+        if fp.is_file():
+            return FileResponse(str(fp))
+        return FileResponse(str(_static / "index.html"))
+
 
 app.add_middleware(
     CORSMiddleware,
