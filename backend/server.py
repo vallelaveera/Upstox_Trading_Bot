@@ -1097,3 +1097,33 @@ async def load_upstox_instruments():
         await ux.fetch_instrument_map()
     except Exception as e:
         logger.warning(f"Instrument prefetch failed: {e}")
+
+
+_RAG_STOCKS = [("RELIANCE", "RELIANCE.NS"), ("TCS", "TCS.NS")]
+
+@app.on_event("startup")
+async def seed_rag_store():
+    """Ingest default stocks into RAG if the collection is empty."""
+    import asyncio
+    from nifty50 import yf_ticker
+
+    async def _ingest_one(symbol: str, ticker_ns: str):
+        try:
+            count = await run_in_threadpool(ingest, symbol, ticker_ns)
+            logger.info("RAG seeded %s — %d chunks", symbol, count)
+        except Exception as e:
+            logger.warning("RAG seed failed for %s: %s", symbol, e)
+
+    from rag_store import _get_client, _ensure_collection, COLLECTION
+    try:
+        _ensure_collection()
+        info = _get_client().get_collection(COLLECTION)
+        if info.points_count and info.points_count > 0:
+            logger.info("RAG store already has %d points — skipping seed", info.points_count)
+            return
+    except Exception:
+        pass
+
+    logger.info("RAG store empty — seeding %d stocks in background…", len(_RAG_STOCKS))
+    for symbol, ticker_ns in _RAG_STOCKS:
+        asyncio.create_task(_ingest_one(symbol, ticker_ns))
