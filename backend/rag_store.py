@@ -14,18 +14,19 @@ from qdrant_client.models import (
     Distance, VectorParams, PointStruct,
     Filter, FieldCondition, MatchValue, FilterSelector,
 )
-from sentence_transformers import SentenceTransformer
+from fastembed import TextEmbedding
 
 logger = logging.getLogger(__name__)
 
 COLLECTION = "market_history"
-VECTOR_SIZE = 384  # all-MiniLM-L6-v2
+EMBED_MODEL = "BAAI/bge-small-en-v1.5"
+VECTOR_SIZE = 384
 
 
 # ------------ singletons ------------
 
 _client: Optional[QdrantClient] = None
-_model: Optional[SentenceTransformer] = None
+_model: Optional[TextEmbedding] = None
 
 
 def _get_client() -> QdrantClient:
@@ -35,12 +36,16 @@ def _get_client() -> QdrantClient:
     return _client
 
 
-def _get_model() -> SentenceTransformer:
+def _get_model() -> TextEmbedding:
     global _model
     if _model is None:
         logger.info("Loading embedding model…")
-        _model = SentenceTransformer("all-MiniLM-L6-v2")
+        _model = TextEmbedding(EMBED_MODEL)
     return _model
+
+
+def _embed(text: str) -> list[float]:
+    return list(_get_model().embed([text]))[0].tolist()
 
 
 def _ensure_collection() -> None:
@@ -122,7 +127,7 @@ def ingest(symbol: str, ticker_ns: str) -> int:
     """Fetch 5yr data and embed daily + weekly + monthly chunks into Qdrant."""
     _ensure_collection()
     client = _get_client()
-    model = _get_model()
+    _get_model()  # warm up
 
     logger.info("Fetching 5yr data for %s (%s)…", symbol, ticker_ns)
     df = fetch_5yr(ticker_ns)
@@ -144,7 +149,7 @@ def ingest(symbol: str, ticker_ns: str) -> int:
         text = _daily_text(symbol, row, prev_close)
         points.append(PointStruct(
             id=str(uuid.uuid4()),
-            vector=model.encode(text).tolist(),
+            vector=_embed(text),
             payload={"symbol": symbol, "date": row["date"], "type": "daily", "text": text,
                      "close": row["close"]},
         ))
@@ -155,7 +160,7 @@ def ingest(symbol: str, ticker_ns: str) -> int:
         text = _weekly_text(symbol, wdf)
         points.append(PointStruct(
             id=str(uuid.uuid4()),
-            vector=model.encode(text).tolist(),
+            vector=_embed(text),
             payload={"symbol": symbol, "date": wdf.iloc[0]["date"], "type": "weekly", "text": text},
         ))
 
@@ -164,7 +169,7 @@ def ingest(symbol: str, ticker_ns: str) -> int:
         text = _monthly_text(symbol, mdf)
         points.append(PointStruct(
             id=str(uuid.uuid4()),
-            vector=model.encode(text).tolist(),
+            vector=_embed(text),
             payload={"symbol": symbol, "date": mdf.iloc[0]["date"], "type": "monthly", "text": text},
         ))
 
@@ -183,9 +188,7 @@ def query(question: str, symbol: str = None, top_k: int = 5) -> list[dict]:
     """Semantic search over stored market history."""
     _ensure_collection()
     client = _get_client()
-    model = _get_model()
-
-    vec = model.encode(question).tolist()
+    vec = _embed(question)
     filt = (
         Filter(must=[FieldCondition(key="symbol", match=MatchValue(value=symbol))])
         if symbol else None
