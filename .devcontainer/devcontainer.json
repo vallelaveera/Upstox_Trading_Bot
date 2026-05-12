@@ -1,0 +1,7 @@
+{
+  "name": "Upstox Trading Bot",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11",
+  "forwardPorts": [8000, 3000],
+  "postCreateCommand": "cd backend && pip install -r requirements.txt",
+  "features": { "ghcr.io/devcontainers/features/node:1": {} }
+}
