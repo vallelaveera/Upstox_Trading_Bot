@@ -72,7 +72,7 @@ export default function Simulator() {
                 className="font-display text-xl md:text-2xl font-bold tracking-tight leading-none"
                 data-testid="app-title"
               >
-                Signal <span className="text-[#E2FF00]">Forge</span>
+                Signal <span className="text-[#00C896]">Forge</span>
               </h1>
               <p className="text-[11px] text-neutral-500 uppercase tracking-[0.2em] mt-1">
                 Real Time Simulator &amp; Trading Bot
@@ -88,7 +88,7 @@ export default function Simulator() {
               </Button>
             </Link>
             <Link to="/live" data-testid="nav-go-live">
-              <Button className="bg-[#E2FF00] hover:bg-[#CBE600] text-black font-bold tracking-wide">
+              <Button className="bg-[#00C896] hover:bg-[#00A882] text-black font-bold tracking-wide">
                 <Plug size={14} weight="fill" className="mr-2" />
                 Go Live
               </Button>
@@ -105,7 +105,7 @@ export default function Simulator() {
           <TabsTrigger
             value="run"
             data-testid="tab-run"
-            className="data-[state=active]:bg-[#E2FF00] data-[state=active]:text-black px-5 py-2.5 font-display font-bold tracking-wide uppercase text-sm"
+            className="data-[state=active]:bg-[#00C896] data-[state=active]:text-black px-5 py-2.5 font-display font-bold tracking-wide uppercase text-sm"
           >
             <Play size={16} weight="fill" className="mr-2" />
             Single Run
@@ -113,7 +113,7 @@ export default function Simulator() {
           <TabsTrigger
             value="compare"
             data-testid="tab-compare"
-            className="data-[state=active]:bg-[#E2FF00] data-[state=active]:text-black px-5 py-2.5 font-display font-bold tracking-wide uppercase text-sm"
+            className="data-[state=active]:bg-[#00C896] data-[state=active]:text-black px-5 py-2.5 font-display font-bold tracking-wide uppercase text-sm"
           >
             <ChartBar size={16} weight="fill" className="mr-2" />
             Compare 5 Strategies
@@ -134,7 +134,7 @@ export default function Simulator() {
                   onClick={runSim}
                   disabled={running}
                   data-testid="run-simulation-button"
-                  className="w-full bg-[#E2FF00] hover:bg-[#CBE600] text-black font-bold py-6 text-base tracking-wide rounded-lg transition-all"
+                  className="w-full bg-[#00C896] hover:bg-[#00A882] text-black font-bold py-6 text-base tracking-wide rounded-lg transition-all"
                 >
                   {running ? (
                     <>

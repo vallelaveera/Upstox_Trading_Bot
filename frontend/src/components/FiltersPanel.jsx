@@ -59,7 +59,7 @@ export default function FiltersPanel({ filters, setFilters, sectors, disabled })
       data-testid="filters-panel"
     >
       <div className="flex items-center gap-2 pb-2 border-b border-white/5">
-        <Sliders size={18} weight="duotone" className="text-[#E2FF00]" />
+        <Sliders size={18} weight="duotone" className="text-[#00C896]" />
         <h2 className="font-display font-bold tracking-tight text-lg uppercase">Strategy</h2>
       </div>
 
@@ -108,13 +108,13 @@ export default function FiltersPanel({ filters, setFilters, sectors, disabled })
                 data-testid={`strategy-type-${s.key}`}
                 className={`text-left px-3 py-2.5 rounded-lg border transition-all ${
                   active
-                    ? "bg-[#E2FF00]/10 border-[#E2FF00]/50 ring-1 ring-[#E2FF00]/30"
+                    ? "bg-[#00C896]/10 border-[#00C896]/50 ring-1 ring-[#00C896]/30"
                     : "bg-black border-white/10 hover:border-white/25"
                 }`}
               >
                 <div
                   className={`text-xs font-display font-bold ${
-                    active ? "text-[#E2FF00]" : "text-white"
+                    active ? "text-[#00C896]" : "text-white"
                   }`}
                 >
                   {s.label}
@@ -148,14 +148,14 @@ export default function FiltersPanel({ filters, setFilters, sectors, disabled })
                 data-testid={`preset-${p.key}`}
                 className={`text-left px-3 py-2 rounded-lg border transition-all flex items-center justify-between ${
                   active
-                    ? "bg-[#E2FF00]/10 border-[#E2FF00]/50"
+                    ? "bg-[#00C896]/10 border-[#00C896]/50"
                     : "bg-black border-white/10 hover:border-white/25"
                 }`}
               >
                 <div>
                   <div
                     className={`text-xs font-display font-bold ${
-                      active ? "text-[#E2FF00]" : "text-white"
+                      active ? "text-[#00C896]" : "text-white"
                     }`}
                   >
                     {p.label}
@@ -173,7 +173,7 @@ export default function FiltersPanel({ filters, setFilters, sectors, disabled })
         </div>
         <div className="flex justify-between text-[11px] font-mono text-neutral-500 pt-1 border-t border-white/5">
           <span>Per-slot ≈</span>
-          <span className="text-[#E2FF00]">{inrCompact(perSlot)}</span>
+          <span className="text-[#00C896]">{inrCompact(perSlot)}</span>
         </div>
       </div>
 
@@ -188,7 +188,7 @@ export default function FiltersPanel({ filters, setFilters, sectors, disabled })
           disabled={disabled}
           onChange={(e) => update("capital", Number(e.target.value))}
           data-testid="filter-capital-input"
-          className="bg-black border-white/10 text-white font-mono focus-visible:ring-[#E2FF00] focus-visible:ring-1"
+          className="bg-black border-white/10 text-white font-mono focus-visible:ring-[#00C896] focus-visible:ring-1"
         />
       </Field>
 
@@ -349,7 +349,7 @@ export default function FiltersPanel({ filters, setFilters, sectors, disabled })
       {/* Sizing extras */}
       <div className="pt-4 border-t border-white/5 space-y-5">
         <div className="flex items-center gap-2">
-          <Stack size={14} weight="duotone" className="text-[#E2FF00]" />
+          <Stack size={14} weight="duotone" className="text-[#00C896]" />
           <Label className="text-[11px] font-semibold text-neutral-400 uppercase tracking-[0.18em]">
             Sizing
           </Label>
@@ -510,7 +510,7 @@ function SliderField({ label, hint, value, min, max, step, onChange, disabled, t
         </Label>
         <span
           className="text-sm font-mono font-bold"
-          style={{ color: accent || "#E2FF00" }}
+          style={{ color: accent || "#00C896" }}
           data-testid={`filter-${testid}-value`}
         >
           {hint}
@@ -536,7 +536,7 @@ function RangeField({ label, hintLeft, hintRight, valueLeft, valueRight, onLeft,
         <Label className="text-[11px] font-semibold text-neutral-400 uppercase tracking-[0.18em]">
           {label}
         </Label>
-        <span className="text-sm font-mono font-bold text-[#E2FF00]" data-testid={`filter-${idLeft}-${idRight}-value`}>
+        <span className="text-sm font-mono font-bold text-[#00C896]" data-testid={`filter-${idLeft}-${idRight}-value`}>
           {hintLeft} – {hintRight}
         </span>
       </div>

@@ -60,7 +60,7 @@ export default function KpiCards({ kpis, simStart, simEnd }) {
       value: `${kpis.win_rate.toFixed(1)}%`,
       sub: `${kpis.wins}W · ${kpis.losses}L of ${kpis.closed_trades} closed`,
       icon: Trophy,
-      color: "#E2FF00",
+      color: "#00C896",
     },
     {
       key: "total-trades",
@@ -82,7 +82,7 @@ export default function KpiCards({ kpis, simStart, simEnd }) {
           key={key}
           data-testid={`kpi-${key}`}
           className={`relative bg-[#0c0c0c] border rounded-xl p-4 md:p-5 hover:border-white/20 transition-colors group overflow-hidden ${
-            big ? "border-[#E2FF00]/30 ring-1 ring-[#E2FF00]/10" : "border-white/10"
+            big ? "border-[#00C896]/30 ring-1 ring-[#00C896]/10" : "border-white/10"
           }`}
         >
           <div

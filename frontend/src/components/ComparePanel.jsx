@@ -28,7 +28,7 @@ import { STRATEGY_TYPES, UNIVERSE_OPTIONS } from "@/lib/strategies";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-const COLORS = ["#E2FF00", "#00E676", "#00B0FF", "#FF6EC7", "#FFA940"];
+const COLORS = ["#00C896", "#00E676", "#00B0FF", "#FF6EC7", "#FFA940"];
 
 const DEFAULT_STRATEGY = (i) => ({
   label: `Strategy ${i + 1}`,
@@ -237,7 +237,7 @@ export default function ComparePanel({ sectors }) {
               onClick={runAll}
               disabled={running || strategies.length === 0}
               data-testid="run-compare-button"
-              className="w-full bg-[#E2FF00] hover:bg-[#CBE600] text-black font-bold py-6 tracking-wide"
+              className="w-full bg-[#00C896] hover:bg-[#00A882] text-black font-bold py-6 tracking-wide"
             >
               {running ? (
                 <>
@@ -267,7 +267,7 @@ export default function ComparePanel({ sectors }) {
             disabled={running || strategies.length >= 5}
             onClick={() => loadPreset(i)}
             data-testid={`compare-preset-${i}`}
-            className="text-xs font-mono px-3 py-1.5 rounded-full border border-white/10 hover:border-[#E2FF00]/40 hover:bg-[#E2FF00]/5 transition-colors text-neutral-300 disabled:opacity-40"
+            className="text-xs font-mono px-3 py-1.5 rounded-full border border-white/10 hover:border-[#00C896]/40 hover:bg-[#00C896]/5 transition-colors text-neutral-300 disabled:opacity-40"
           >
             + {p.label}
           </button>
@@ -293,7 +293,7 @@ export default function ComparePanel({ sectors }) {
             disabled={running}
             onClick={addStrat}
             data-testid="compare-add-strategy"
-            className="bg-[#0c0c0c] border-2 border-dashed border-white/10 rounded-xl p-6 hover:border-[#E2FF00]/40 hover:bg-[#E2FF00]/5 transition-colors flex flex-col items-center justify-center gap-2 min-h-[200px] text-neutral-500 hover:text-[#E2FF00]"
+            className="bg-[#0c0c0c] border-2 border-dashed border-white/10 rounded-xl p-6 hover:border-[#00C896]/40 hover:bg-[#00C896]/5 transition-colors flex flex-col items-center justify-center gap-2 min-h-[200px] text-neutral-500 hover:text-[#00C896]"
           >
             <Plus size={28} weight="bold" />
             <span className="font-display font-bold uppercase tracking-wide text-sm">
@@ -309,7 +309,7 @@ export default function ComparePanel({ sectors }) {
       {/* Empty hint */}
       {!results && !running && (
         <div className="bg-[#0c0c0c] border border-dashed border-white/10 rounded-xl p-10 text-center">
-          <ChartBar size={32} weight="duotone" className="mx-auto text-[#E2FF00] mb-3" />
+          <ChartBar size={32} weight="duotone" className="mx-auto text-[#00C896] mb-3" />
           <h3 className="font-display font-bold text-lg uppercase tracking-tight">
             Compare up to 5 strategies head-to-head
           </h3>
@@ -587,7 +587,7 @@ function CompareResults({ results, colors, starting }) {
                 <tr
                   key={r.label || i}
                   className={`border-b border-white/5 hover:bg-white/[0.02] ${
-                    isWinner ? "bg-[#E2FF00]/5" : ""
+                    isWinner ? "bg-[#00C896]/5" : ""
                   }`}
                   data-testid={`compare-row-${i}`}
                 >
@@ -601,7 +601,7 @@ function CompareResults({ results, colors, starting }) {
                         {r.label}
                       </span>
                       {isWinner && (
-                        <Trophy size={14} weight="fill" className="text-[#E2FF00]" />
+                        <Trophy size={14} weight="fill" className="text-[#00C896]" />
                       )}
                     </div>
                     <div className="text-[10px] text-neutral-500 mt-0.5">

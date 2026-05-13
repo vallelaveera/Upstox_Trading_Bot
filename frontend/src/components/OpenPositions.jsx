@@ -9,7 +9,7 @@ export default function OpenPositions({ positions }) {
     >
       <div className="p-5 md:p-6 border-b border-white/5 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Briefcase size={18} weight="duotone" className="text-[#E2FF00]" />
+          <Briefcase size={18} weight="duotone" className="text-[#00C896]" />
           <h3 className="font-display font-bold text-lg uppercase tracking-tight">
             Open Positions
           </h3>

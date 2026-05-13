@@ -37,7 +37,7 @@ export default function EquityChart({ data, starting }) {
         </div>
         <div className="flex items-center gap-3 text-xs">
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-[#E2FF00]" />
+            <span className="h-2 w-2 rounded-full bg-[#00C896]" />
             <span className="text-neutral-400 font-mono">Equity</span>
           </span>
           <span className="flex items-center gap-1.5">
@@ -52,8 +52,8 @@ export default function EquityChart({ data, starting }) {
           <AreaChart data={formatted} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="equityFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#E2FF00" stopOpacity={0.35} />
-                <stop offset="100%" stopColor="#E2FF00" stopOpacity={0} />
+                <stop offset="0%" stopColor="#00C896" stopOpacity={0.35} />
+                <stop offset="100%" stopColor="#00C896" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
@@ -90,10 +90,10 @@ export default function EquityChart({ data, starting }) {
             <Area
               type="monotone"
               dataKey="equity"
-              stroke="#E2FF00"
+              stroke="#00C896"
               strokeWidth={2}
               fill="url(#equityFill)"
-              activeDot={{ r: 5, fill: "#E2FF00", stroke: "#050505", strokeWidth: 2 }}
+              activeDot={{ r: 5, fill: "#00C896", stroke: "#050505", strokeWidth: 2 }}
             />
           </AreaChart>
         </ResponsiveContainer>
@@ -109,7 +109,7 @@ function CustomTooltip({ active, payload, label }) {
     <div className="bg-black/95 border border-white/15 rounded-lg p-3 backdrop-blur-sm shadow-2xl">
       <div className="text-xs text-neutral-400 font-mono mb-1.5">{label}</div>
       <div className="space-y-1 text-sm font-mono">
-        <Row k="Equity" v={inrFull(d.equity)} c="#E2FF00" />
+        <Row k="Equity" v={inrFull(d.equity)} c="#00C896" />
         <Row k="Cash" v={inrFull(d.cash)} c="#fff" />
         <Row k="Invested" v={inrFull(d.invested)} c="#fff" />
         <Row k="Open pos" v={d.open_positions} c="#A3A3A3" />

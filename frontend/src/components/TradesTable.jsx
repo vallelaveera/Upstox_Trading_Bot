@@ -170,7 +170,7 @@ export default function TradesTable({ trades }) {
                       className={`font-mono text-[10px] uppercase tracking-widest border ${
                         t.status === "closed"
                           ? "border-white/15 text-neutral-300 bg-white/5"
-                          : "border-[#E2FF00]/40 text-[#E2FF00] bg-[#E2FF00]/5"
+                          : "border-[#00C896]/40 text-[#00C896] bg-[#00C896]/5"
                       }`}
                     >
                       {t.status === "closed" ? t.reason || "closed" : "open"}

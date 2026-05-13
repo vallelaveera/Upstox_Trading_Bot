@@ -6,7 +6,7 @@ export default function EmptyState() {
       className="relative bg-[#0c0c0c] border border-white/10 rounded-2xl p-8 md:p-14 overflow-hidden"
       data-testid="empty-state"
     >
-      <div className="absolute -right-32 -top-32 h-72 w-72 rounded-full bg-[#E2FF00]/5 blur-3xl" />
+      <div className="absolute -right-32 -top-32 h-72 w-72 rounded-full bg-[#00C896]/5 blur-3xl" />
       <div className="absolute -left-24 -bottom-24 h-72 w-72 rounded-full bg-[#00E676]/5 blur-3xl" />
 
       <div className="relative z-10 max-w-2xl">
@@ -18,7 +18,7 @@ export default function EmptyState() {
         </div>
 
         <h2 className="font-display text-3xl md:text-5xl font-black tracking-tight leading-[1.05]">
-          Backtest your <span className="text-[#E2FF00]">swing</span> strategy <br />
+          Backtest your <span className="text-[#00C896]">swing</span> strategy <br />
           on the last <span className="font-mono">N</span> weeks of NSE.
         </h2>
 
@@ -56,7 +56,7 @@ export default function EmptyState() {
           </span>
           <span>·</span>
           <span className="flex items-center gap-1.5">
-            <ChartLineUp size={14} weight="duotone" className="text-[#E2FF00]" />
+            <ChartLineUp size={14} weight="duotone" className="text-[#00C896]" />
             Live market data
           </span>
         </div>
@@ -70,7 +70,7 @@ function Step({ n, icon: Icon, title, desc }) {
     <div className="bg-black/40 border border-white/10 rounded-xl p-4">
       <div className="flex items-center justify-between mb-3">
         <span className="font-mono text-[11px] text-neutral-500">{n}</span>
-        <Icon size={18} weight="duotone" className="text-[#E2FF00]" />
+        <Icon size={18} weight="duotone" className="text-[#00C896]" />
       </div>
       <div className="font-display font-bold text-base">{title}</div>
       <div className="text-[12px] text-neutral-500 mt-1">{desc}</div>
