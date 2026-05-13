@@ -994,6 +994,74 @@ async def upstox_diagnostic():
     }
 
 
+# ------------ AI candidate analysis ------------
+
+class AnalyzeCandidatesRequest(BaseModel):
+    candidates: List[dict]  # each: {symbol, ltp, drop_pct, weekly_drop_pct, market_cap_cr, sector, name}
+    nifty_1d_pct: Optional[float] = None  # index move today for context
+
+
+@api_router.post("/analyze/candidates")
+async def analyze_candidates(req: AnalyzeCandidatesRequest):
+    import anthropic
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY not configured")
+
+    if not req.candidates:
+        raise HTTPException(status_code=400, detail="No candidates provided")
+
+    # Build a compact table for Claude
+    lines = []
+    for c in req.candidates:
+        mcap = f"₹{c.get('market_cap_cr', 0):,.0f}Cr" if c.get("market_cap_cr") else "N/A"
+        lines.append(
+            f"- {c['symbol']} ({c.get('sector','?')}): 1d drop={c['drop_pct']}%, "
+            f"5d Δ={c.get('weekly_drop_pct', 0):+.2f}%, MCap={mcap}, LTP=₹{c.get('ltp', 0):.2f}"
+        )
+    table = "\n".join(lines)
+
+    nifty_ctx = ""
+    if req.nifty_1d_pct is not None:
+        nifty_ctx = f"\nNifty50 moved {req.nifty_1d_pct:+.2f}% today."
+
+    prompt = f"""You are a senior NSE swing trader. Analyse these stocks that dipped today and are being considered as buy candidates.{nifty_ctx}
+
+Stocks:
+{table}
+
+For EACH stock output a JSON object with:
+- "score": integer 1-10 (10 = strong contrarian buy, 1 = likely bad news / avoid)
+- "label": one of "Market dip", "Profit booking", "Sector rotation", "Bad news risk", "Oversold bounce", "Unclear"
+- "reasoning": ONE sentence max (what explains this drop and whether to buy)
+
+Respond with ONLY a JSON object keyed by symbol. Example:
+{{"RELIANCE": {{"score": 8, "label": "Market dip", "reasoning": "Broad selloff day; fundamentals intact, good entry."}}}}"""
+
+    client_ai = anthropic.Anthropic(api_key=api_key)
+    response = client_ai.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=1024,
+        messages=[{"role": "user", "content": prompt}],
+    )
+
+    raw = response.content[0].text.strip()
+    # Strip markdown code fences if present
+    if raw.startswith("```"):
+        raw = "\n".join(raw.split("\n")[1:])
+        if raw.endswith("```"):
+            raw = raw[:-3].strip()
+
+    import json
+    try:
+        result = json.loads(raw)
+    except Exception:
+        raise HTTPException(status_code=500, detail=f"Claude returned non-JSON: {raw[:200]}")
+
+    return result
+
+
 # ------------ RAG chat ------------
 
 class ChatRequest(BaseModel):

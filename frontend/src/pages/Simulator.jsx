@@ -8,6 +8,7 @@ import {
   ChartBar,
   Play,
   Plug,
+  Robot,
 } from "@phosphor-icons/react";
 import FiltersPanel from "@/components/FiltersPanel";
 import KpiCards from "@/components/KpiCards";
@@ -158,6 +159,22 @@ export default function Simulator() {
                   Reset filters
                 </Button>
               </div>
+
+              {/* Ask AI panel */}
+              <Link to="/chat" className="block">
+                <div className="group border border-[#00C896]/20 hover:border-[#00C896]/50 bg-[#00C896]/[0.03] hover:bg-[#00C896]/[0.07] rounded-xl p-4 transition-all cursor-pointer">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Robot size={16} weight="duotone" className="text-[#00C896]" />
+                    <span className="text-xs font-bold text-[#00C896] uppercase tracking-wider">Ask AI</span>
+                  </div>
+                  <p className="text-[11px] text-neutral-400 leading-relaxed">
+                    Ask about any NSE stock — earnings, momentum, historical drops — powered by RAG + Claude.
+                  </p>
+                  <span className="mt-3 inline-flex items-center gap-1 text-[11px] text-[#00C896] font-bold group-hover:underline">
+                    Open AI Research →
+                  </span>
+                </div>
+              </Link>
             </aside>
 
             <section className="lg:col-span-3 space-y-4 md:space-y-6">

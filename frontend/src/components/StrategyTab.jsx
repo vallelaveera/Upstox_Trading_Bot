@@ -12,6 +12,7 @@ import {
   Warning,
   ListChecks,
   Coins,
+  Sparkle,
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,11 +63,13 @@ export default function StrategyTab({ onOrdersPlaced }) {
   const [confirmOneOpen, setConfirmOneOpen] = useState(null);
   const [executionResult, setExecutionResult] = useState(null);
   const [selected, setSelected] = useState(new Set());
+  const [analysis, setAnalysis] = useState({});
+  const [analyzing, setAnalyzing] = useState(false);
 
   const update = (k, v) => setConfig((c) => ({ ...c, [k]: v }));
   const perSlot = config.capital / Math.max(1, config.slots);
 
-  // Auto-preselect top N candidates whenever scan completes
+  // Auto-preselect top N candidates whenever scan completes; reset AI analysis
   useEffect(() => {
     if (scanResult?.candidates?.length) {
       const top = scanResult.candidates
@@ -76,6 +79,7 @@ export default function StrategyTab({ onOrdersPlaced }) {
     } else {
       setSelected(new Set());
     }
+    setAnalysis({});
   }, [scanResult, config.slots]);
 
   const toggleSelect = (symbol) => {
@@ -101,6 +105,23 @@ export default function StrategyTab({ onOrdersPlaced }) {
     );
   };
   const clearAll = () => setSelected(new Set());
+
+  const analyzeWithAI = async () => {
+    if (!scanResult?.candidates?.length) return;
+    setAnalyzing(true);
+    setAnalysis({});
+    try {
+      const res = await axios.post(`${API}/analyze/candidates`, {
+        candidates: scanResult.candidates,
+      });
+      setAnalysis(res.data);
+    } catch (e) {
+      const msg = e?.response?.data?.detail || e.message;
+      toast.error(`AI analysis failed: ${typeof msg === "string" ? msg : "unknown"}`);
+    } finally {
+      setAnalyzing(false);
+    }
+  };
 
   const selectedPicks = useMemo(() => {
     if (!scanResult?.candidates) return [];
@@ -607,6 +628,21 @@ export default function StrategyTab({ onOrdersPlaced }) {
                 >
                   Clear
                 </button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={analyzeWithAI}
+                  disabled={analyzing}
+                  data-testid="analyze-ai-button"
+                  className="border-[#00C896]/40 text-[#00C896] hover:bg-[#00C896]/10 hover:text-[#00C896] text-xs font-bold"
+                >
+                  {analyzing ? (
+                    <ArrowsClockwise size={12} weight="bold" className="mr-1.5 animate-spin" />
+                  ) : (
+                    <Sparkle size={12} weight="fill" className="mr-1.5" />
+                  )}
+                  {analyzing ? "Analysing…" : "Analyse with AI"}
+                </Button>
               </div>
             )}
           </div>
@@ -629,6 +665,7 @@ export default function StrategyTab({ onOrdersPlaced }) {
                     <Th right>5d Δ</Th>
                     <Th right>Qty</Th>
                     <Th right>Cost</Th>
+                    <Th>AI Signal</Th>
                     <Th right>Action</Th>
                   </tr>
                 </thead>
@@ -688,6 +725,9 @@ export default function StrategyTab({ onOrdersPlaced }) {
                         </Td>
                         <Td right>{qty || "—"}</Td>
                         <Td right>{cost > 0 ? inrFull2(cost) : "—"}</Td>
+                        <Td>
+                          <AISignalCell signal={analysis[c.symbol]} loading={analyzing} />
+                        </Td>
                         <Td right>
                           {qty > 0 && (
                             <button
@@ -899,9 +939,60 @@ function fmtMcap(cr) {
 }
 
 function mcapTier(cr) {
-  // Visual hint: large cap >= 20K Cr (purple), mid 5–20K (yellow), small 1–5K (orange), micro <1K (red)
   if (cr >= 20000) return { tier: "Large", color: "text-[#A78BFA]" };
   if (cr >= 5000) return { tier: "Mid", color: "text-[#00C896]" };
   if (cr >= 1000) return { tier: "Small", color: "text-[#FFA940]" };
   return { tier: "Micro", color: "text-[#FF3B30]" };
+}
+
+const SIGNAL_CONFIG = {
+  "Market dip":       { color: "#00C896", bg: "bg-[#00C896]/10 border-[#00C896]/30" },
+  "Profit booking":   { color: "#00C896", bg: "bg-[#00C896]/10 border-[#00C896]/30" },
+  "Oversold bounce":  { color: "#00E676", bg: "bg-[#00E676]/10 border-[#00E676]/30" },
+  "Sector rotation":  { color: "#FFA940", bg: "bg-[#FFA940]/10 border-[#FFA940]/30" },
+  "Unclear":          { color: "#A3A3A3", bg: "bg-white/5 border-white/10" },
+  "Bad news risk":    { color: "#FF3B30", bg: "bg-[#FF3B30]/10 border-[#FF3B30]/30" },
+};
+
+function scoreColor(score) {
+  if (score >= 7) return "#00C896";
+  if (score >= 4) return "#FFA940";
+  return "#FF3B30";
+}
+
+function AISignalCell({ signal, loading }) {
+  if (loading) {
+    return (
+      <div className="flex items-center gap-1.5 text-neutral-500 text-[11px] font-mono">
+        <ArrowsClockwise size={10} className="animate-spin" />
+        <span>analysing…</span>
+      </div>
+    );
+  }
+  if (!signal) {
+    return <span className="text-neutral-600 text-[11px] font-mono">—</span>;
+  }
+  const cfg = SIGNAL_CONFIG[signal.label] || SIGNAL_CONFIG["Unclear"];
+  return (
+    <div className="flex flex-col gap-1 min-w-[140px]">
+      <div className="flex items-center gap-1.5">
+        <span
+          className={`inline-flex items-center justify-center h-5 w-5 rounded-full text-[10px] font-bold border ${cfg.bg}`}
+          style={{ color: scoreColor(signal.score) }}
+          title={`Score: ${signal.score}/10`}
+        >
+          {signal.score}
+        </span>
+        <span
+          className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${cfg.bg}`}
+          style={{ color: cfg.color }}
+        >
+          {signal.label}
+        </span>
+      </div>
+      <span className="text-[10px] text-neutral-400 leading-snug max-w-[200px]" title={signal.reasoning}>
+        {signal.reasoning}
+      </span>
+    </div>
+  );
 }
