@@ -192,10 +192,10 @@ export default function LiveTrading() {
             </div>
             <div>
               <h1 className="font-display text-xl md:text-2xl font-bold tracking-tight leading-none">
-                NSE SWING <span className="text-[#E2FF00]">SIM</span>
+                Signal <span className="text-[#E2FF00]">Forge</span>
               </h1>
               <p className="text-[11px] text-neutral-500 uppercase tracking-[0.2em] mt-1">
-                Live Trading · Upstox API v2
+                Real Time Simulator &amp; Trading Bot
               </p>
             </div>
           </Link>

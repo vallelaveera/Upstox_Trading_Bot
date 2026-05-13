@@ -96,15 +96,15 @@ export default function KpiCards({ kpis, simStart, simEnd }) {
             <Icon size={18} weight="duotone" style={{ color }} />
           </div>
           <div
-            className={`font-mono font-bold tracking-tight ${
-              big ? "text-2xl lg:text-3xl" : "text-lg lg:text-xl"
+            className={`font-mono font-bold tracking-tight break-all ${
+              big ? "text-xl lg:text-2xl" : "text-base lg:text-lg"
             }`}
             style={{ color: ["net-pnl", "gross-pnl", "total-costs", "final-portfolio"].includes(key) ? color : "#fff" }}
             data-testid={`kpi-${key}-value`}
           >
             {value}
           </div>
-          <div className="mt-2 text-[11px] text-neutral-500 font-mono truncate" title={sub}>
+          <div className="mt-2 text-[11px] text-neutral-500 font-mono leading-tight break-words" title={sub}>
             {sub}
           </div>
         </div>

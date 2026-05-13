@@ -19,7 +19,6 @@ from universe import UNIVERSES, get_universe
 from simulator import run_simulation, run_compare, VALID_STRATEGIES
 import upstox_client as ux
 from strategy_live import scan_daily_dips, execute_picks, manage_swing_positions, rearm_swing_exits
-from rag_store import query as rag_query, structured_context, ingest
 
 
 ROOT_DIR = Path(__file__).parent
@@ -1004,6 +1003,9 @@ class ChatRequest(BaseModel):
 
 @api_router.post("/chat")
 async def chat(req: ChatRequest):
+    from rag_store import query as rag_query, structured_context
+    import anthropic
+
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY not configured")
@@ -1031,7 +1033,6 @@ async def chat(req: ChatRequest):
     if extra:
         context_block += f"\n\n{extra}"
 
-    import anthropic
     client_ai = anthropic.Anthropic(api_key=api_key)
     response = client_ai.messages.create(
         model="claude-sonnet-4-6",
@@ -1052,10 +1053,11 @@ async def chat(req: ChatRequest):
 @api_router.post("/chat/ingest")
 async def chat_ingest(body: dict):
     """Ingest a stock's 5yr history into the RAG store."""
+    from rag_store import ingest
+    from nifty50 import yf_ticker
     symbol = (body.get("symbol") or "").upper().strip()
     if not symbol:
         raise HTTPException(status_code=400, detail="symbol required")
-    from nifty50 import yf_ticker
     ticker_ns = yf_ticker(symbol)
     count = await run_in_threadpool(ingest, symbol, ticker_ns)
     return {"symbol": symbol, "chunks": count}
@@ -1109,13 +1111,14 @@ async def seed_rag_store():
 
     async def _ingest_one(symbol: str, ticker_ns: str):
         try:
+            from rag_store import ingest
             count = await run_in_threadpool(ingest, symbol, ticker_ns)
             logger.info("RAG seeded %s — %d chunks", symbol, count)
         except Exception as e:
             logger.warning("RAG seed failed for %s: %s", symbol, e)
 
-    from rag_store import _get_client, _ensure_collection, COLLECTION
     try:
+        from rag_store import _get_client, _ensure_collection, COLLECTION
         _ensure_collection()
         info = _get_client().get_collection(COLLECTION)
         if info.points_count and info.points_count > 0:
