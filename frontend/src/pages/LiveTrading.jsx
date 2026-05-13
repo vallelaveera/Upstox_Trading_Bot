@@ -6,7 +6,6 @@ import {
   Plug,
   PlugsConnected,
   ArrowsClockwise,
-  ChartLineUp,
   Wallet,
   Briefcase,
   Receipt,
@@ -187,9 +186,7 @@ export default function LiveTrading() {
       <header className="border-b border-white/5 sticky top-0 z-30 backdrop-blur-md bg-[#050505]/80">
         <div className="max-w-[1600px] mx-auto px-6 md:px-8 py-5 flex items-center justify-between gap-4">
           <Link to="/" className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-[#E2FF00] flex items-center justify-center text-black">
-              <ChartLineUp size={22} weight="bold" />
-            </div>
+            <img src="/logo.svg" alt="Signal Forge" className="h-10 w-10" />
             <div>
               <h1 className="font-display text-xl md:text-2xl font-bold tracking-tight leading-none">
                 Signal <span className="text-[#E2FF00]">Forge</span>
