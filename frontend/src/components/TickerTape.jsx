@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const REFRESH_INTERVAL = 60 * 1000; // 60 seconds
 
 const FALLBACK = [
   { symbol: "RELIANCE", price: 2850.4, change_pct: 0.42 },
@@ -20,21 +21,49 @@ const FALLBACK = [
 
 export default function TickerTape() {
   const [tickers, setTickers] = useState(FALLBACK);
-  const scrollRef = useRef(null);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [live, setLive] = useState(false);
+
+  const fetchTickers = () => {
+    axios.get(`${API}/ticker`).then((r) => {
+      if (r.data.tickers?.length > 0) {
+        setTickers(r.data.tickers);
+        setLastUpdated(new Date());
+        setLive(true);
+      }
+    }).catch(() => {
+      setLive(false);
+    });
+  };
 
   useEffect(() => {
-    axios.get(`${API}/ticker`).then((r) => {
-      if (r.data.tickers?.length > 0) setTickers(r.data.tickers);
-    }).catch(() => {});
+    fetchTickers();
+    const interval = setInterval(fetchTickers, REFRESH_INTERVAL);
+    return () => clearInterval(interval);
   }, []);
 
   const items = [...tickers, ...tickers];
+
+  const timeStr = lastUpdated
+    ? lastUpdated.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+    : null;
 
   return (
     <div className="border-b border-white/5 bg-black/40 overflow-hidden relative">
       <div className="absolute left-0 top-0 bottom-0 w-12 z-10 bg-gradient-to-r from-black/80 to-transparent pointer-events-none" />
       <div className="absolute right-0 top-0 bottom-0 w-12 z-10 bg-gradient-to-l from-black/80 to-transparent pointer-events-none" />
-      <div ref={scrollRef} className="flex gap-0 ticker-scroll">
+
+      {/* Timestamp badge */}
+      <div className="absolute right-14 top-0 bottom-0 z-20 flex items-center">
+        <div className="flex items-center gap-1.5 bg-black/60 border border-white/10 rounded px-2 py-0.5">
+          <span className={`h-1.5 w-1.5 rounded-full ${live ? "bg-[#FBBF24] pulse-dot" : "bg-neutral-600"}`} />
+          <span className="text-[9px] font-mono text-neutral-500 uppercase tracking-wider">
+            {live && timeStr ? `Live · ${timeStr}` : "Delayed"}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex gap-0 ticker-scroll">
         {items.map((t, i) => (
           <div key={i} className="flex items-center gap-2 px-5 py-2 border-r border-white/5 shrink-0">
             <span className="text-[11px] font-mono font-bold text-white tracking-wider">{t.symbol}</span>
