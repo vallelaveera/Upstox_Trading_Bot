@@ -187,20 +187,55 @@ export default function Simulator() {
               </div>
 
               {/* Ask AI panel */}
-              <Link to="/chat" className="block">
-                <div className="group border border-[#FBBF24]/20 hover:border-[#FBBF24]/50 bg-[#FBBF24]/[0.03] hover:bg-[#FBBF24]/[0.07] rounded-xl p-4 transition-all cursor-pointer">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Robot size={16} weight="duotone" className="text-[#FBBF24]" />
-                    <span className="text-xs font-bold text-[#FBBF24] uppercase tracking-wider">Ask AI</span>
-                  </div>
-                  <p className="text-[11px] text-neutral-400 leading-relaxed">
-                    Ask about any NSE stock — earnings, momentum, historical drops — powered by RAG + Claude.
-                  </p>
-                  <span className="mt-3 inline-flex items-center gap-1 text-[11px] text-[#FBBF24] font-bold group-hover:underline">
-                    Open AI Research →
-                  </span>
+              <div className="border border-[#FBBF24]/20 bg-[#FBBF24]/[0.03] rounded-xl p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Robot size={16} weight="duotone" className="text-[#FBBF24]" />
+                  <span className="text-xs font-bold text-[#FBBF24] uppercase tracking-wider">Ask AI</span>
                 </div>
-              </Link>
+                <p className="text-[11px] text-neutral-300 leading-relaxed">
+                  RAG-powered research on NSE stocks using 5 years of historical data, indexed with Claude AI.
+                </p>
+
+                {/* Data coverage */}
+                <div className="grid grid-cols-3 gap-1.5">
+                  {[
+                    { label: "Stocks", value: "2" },
+                    { label: "Years", value: "5yr" },
+                    { label: "Granularity", value: "Daily" },
+                  ].map((s) => (
+                    <div key={s.label} className="bg-black/40 border border-white/5 rounded-lg p-2 text-center">
+                      <div className="text-[#FBBF24] font-mono font-bold text-sm">{s.value}</div>
+                      <div className="text-[9px] text-neutral-600 uppercase tracking-wider mt-0.5">{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Quick questions */}
+                <div className="space-y-1.5">
+                  <p className="text-[9px] text-neutral-600 uppercase tracking-widest">Quick questions</p>
+                  {[
+                    "When did RELIANCE last drop 5%?",
+                    "Best month for TCS in 2023?",
+                    "RELIANCE vs TCS last year?",
+                  ].map((q) => (
+                    <Link
+                      key={q}
+                      to={`/chat?q=${encodeURIComponent(q)}`}
+                      className="block text-[11px] text-neutral-400 hover:text-[#FBBF24] border border-white/5 hover:border-[#FBBF24]/30 rounded-lg px-3 py-1.5 transition-colors truncate"
+                    >
+                      {q}
+                    </Link>
+                  ))}
+                </div>
+
+                <Link
+                  to="/chat"
+                  className="flex items-center justify-center gap-1.5 text-[11px] text-black bg-[#FBBF24] hover:bg-[#D97706] font-bold rounded-lg py-2 transition-colors"
+                >
+                  <Robot size={13} weight="bold" />
+                  Open AI Research
+                </Link>
+              </div>
 
               <TechStackPanel />
               <ActivityLog running={running} result={result} />
