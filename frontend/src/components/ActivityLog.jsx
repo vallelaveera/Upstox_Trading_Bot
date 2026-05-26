@@ -64,8 +64,8 @@ export default function ActivityLog({ running, result }) {
   }, [running, idx]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [logs]);
+    if (running) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [logs, running]);
 
   return (
     <div className="bg-[#0c0c0c] border border-white/10 rounded-xl p-5 flex flex-col h-full min-h-[280px]">
