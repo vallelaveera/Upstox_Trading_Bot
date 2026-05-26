@@ -1194,7 +1194,23 @@ async def load_upstox_instruments():
         logger.warning(f"Instrument prefetch failed: {e}")
 
 
-_RAG_STOCKS = [("RELIANCE", "RELIANCE.NS"), ("TCS", "TCS.NS")]
+_RAG_STOCKS = [
+    ("RELIANCE", "RELIANCE.NS"),
+    ("TCS", "TCS.NS"),
+    ("INFY", "INFY.NS"),
+    ("HDFCBANK", "HDFCBANK.NS"),
+    ("ICICIBANK", "ICICIBANK.NS"),
+    ("HINDUNILVR", "HINDUNILVR.NS"),
+    ("BAJFINANCE", "BAJFINANCE.NS"),
+    ("SBIN", "SBIN.NS"),
+    ("WIPRO", "WIPRO.NS"),
+    ("LT", "LT.NS"),
+    ("AXISBANK", "AXISBANK.NS"),
+    ("MARUTI", "MARUTI.NS"),
+    ("TITAN", "TITAN.NS"),
+    ("ADANIENT", "ADANIENT.NS"),
+    ("ONGC", "ONGC.NS"),
+]
 
 @app.on_event("startup")
 async def seed_rag_store():

@@ -199,7 +199,7 @@ export default function Simulator() {
                 {/* Data coverage */}
                 <div className="grid grid-cols-3 gap-1.5">
                   {[
-                    { label: "Stocks", value: "2" },
+                    { label: "Stocks", value: "15" },
                     { label: "Years", value: "5yr" },
                     { label: "Granularity", value: "Daily" },
                   ].map((s) => (
@@ -214,9 +214,9 @@ export default function Simulator() {
                 <div className="space-y-1.5">
                   <p className="text-[9px] text-neutral-600 uppercase tracking-widest">Quick questions</p>
                   {[
-                    "When did RELIANCE last drop 5%?",
-                    "Best month for TCS in 2023?",
-                    "RELIANCE vs TCS last year?",
+                    "When did INFY last drop 5%?",
+                    "Best month for HDFCBANK in 2023?",
+                    "Compare SBIN vs AXISBANK?",
                   ].map((q) => (
                     <Link
                       key={q}

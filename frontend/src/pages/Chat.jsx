@@ -22,7 +22,7 @@ const SUGGESTIONS = [
   "When did TCS drop more than 8% in a month?",
 ];
 
-const KNOWN_STOCKS = ["RELIANCE", "TCS"];
+const KNOWN_STOCKS = ["RELIANCE", "TCS", "INFY", "HDFCBANK", "ICICIBANK", "HINDUNILVR", "BAJFINANCE", "SBIN", "WIPRO", "LT", "AXISBANK", "MARUTI", "TITAN", "ADANIENT", "ONGC"];
 
 function SourceChip({ source }) {
   const [open, setOpen] = useState(false);
