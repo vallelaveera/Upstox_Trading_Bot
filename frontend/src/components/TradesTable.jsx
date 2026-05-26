@@ -122,7 +122,7 @@ export default function TradesTable({ trades }) {
             )}
             {rows.map((t, idx) => {
               const positive = t.pnl >= 0;
-              const c = positive ? "#00E676" : "#FF3B30";
+              const c = positive ? "#FDE047" : "#FF3B30";
               return (
                 <TableRow
                   key={`${t.symbol}-${t.buy_date}-${idx}`}
@@ -170,7 +170,7 @@ export default function TradesTable({ trades }) {
                       className={`font-mono text-[10px] uppercase tracking-widest border ${
                         t.status === "closed"
                           ? "border-white/15 text-neutral-300 bg-white/5"
-                          : "border-[#00C896]/40 text-[#00C896] bg-[#00C896]/5"
+                          : "border-[#FBBF24]/40 text-[#FBBF24] bg-[#FBBF24]/5"
                       }`}
                     >
                       {t.status === "closed" ? t.reason || "closed" : "open"}

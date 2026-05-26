@@ -189,7 +189,7 @@ export default function LiveTrading() {
             <img src="/logo.svg" alt="Signal Forge" className="h-10 w-10" />
             <div>
               <h1 className="font-display text-xl md:text-2xl font-bold tracking-tight leading-none">
-                Signal <span className="text-[#00C896]">Forge</span>
+                Signal <span className="text-[#FBBF24]">Forge</span>
               </h1>
               <p className="text-[11px] text-neutral-500 uppercase tracking-[0.2em] mt-1">
                 Real Time Simulator &amp; Trading Bot
@@ -219,7 +219,7 @@ export default function LiveTrading() {
           <div className="flex items-center gap-4">
             <div
               className={`h-12 w-12 rounded-lg flex items-center justify-center ${
-                status.connected ? "bg-[#00E676]/10 text-[#00E676]" : "bg-white/5 text-neutral-500"
+                status.connected ? "bg-[#FDE047]/10 text-[#FDE047]" : "bg-white/5 text-neutral-500"
               }`}
             >
               {status.connected ? (
@@ -270,7 +270,7 @@ export default function LiveTrading() {
               <Button
                 onClick={connect}
                 data-testid="upstox-connect-button"
-                className="bg-[#00C896] hover:bg-[#00A882] text-black font-bold px-6 py-5 tracking-wide"
+                className="bg-[#FBBF24] hover:bg-[#D97706] text-black font-bold px-6 py-5 tracking-wide"
               >
                 <Plug size={18} weight="fill" className="mr-2" />
                 Connect Upstox
@@ -314,35 +314,35 @@ export default function LiveTrading() {
               <TabsTrigger
                 value="strategy"
                 data-testid="live-tab-strategy"
-                className="data-[state=active]:bg-[#00C896] data-[state=active]:text-black px-5 py-2.5 font-display font-bold tracking-wide uppercase text-sm"
+                className="data-[state=active]:bg-[#FBBF24] data-[state=active]:text-black px-5 py-2.5 font-display font-bold tracking-wide uppercase text-sm"
               >
                 Apply Strategy
               </TabsTrigger>
               <TabsTrigger
                 value="trade"
                 data-testid="live-tab-trade"
-                className="data-[state=active]:bg-[#00C896] data-[state=active]:text-black px-5 py-2.5 font-display font-bold tracking-wide uppercase text-sm"
+                className="data-[state=active]:bg-[#FBBF24] data-[state=active]:text-black px-5 py-2.5 font-display font-bold tracking-wide uppercase text-sm"
               >
                 Manual Order
               </TabsTrigger>
               <TabsTrigger
                 value="holdings"
                 data-testid="live-tab-holdings"
-                className="data-[state=active]:bg-[#00C896] data-[state=active]:text-black px-5 py-2.5 font-display font-bold tracking-wide uppercase text-sm"
+                className="data-[state=active]:bg-[#FBBF24] data-[state=active]:text-black px-5 py-2.5 font-display font-bold tracking-wide uppercase text-sm"
               >
                 Holdings
               </TabsTrigger>
               <TabsTrigger
                 value="positions"
                 data-testid="live-tab-positions"
-                className="data-[state=active]:bg-[#00C896] data-[state=active]:text-black px-5 py-2.5 font-display font-bold tracking-wide uppercase text-sm"
+                className="data-[state=active]:bg-[#FBBF24] data-[state=active]:text-black px-5 py-2.5 font-display font-bold tracking-wide uppercase text-sm"
               >
                 Positions
               </TabsTrigger>
               <TabsTrigger
                 value="orders"
                 data-testid="live-tab-orders"
-                className="data-[state=active]:bg-[#00C896] data-[state=active]:text-black px-5 py-2.5 font-display font-bold tracking-wide uppercase text-sm"
+                className="data-[state=active]:bg-[#FBBF24] data-[state=active]:text-black px-5 py-2.5 font-display font-bold tracking-wide uppercase text-sm"
               >
                 Orders
               </TabsTrigger>
@@ -397,7 +397,7 @@ function PnLDashboard({ pnl, fees, onManage, managing, onRearm, rearming }) {
     >
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div className="flex items-center gap-2">
-          <Briefcase size={18} weight="duotone" className="text-[#00C896]" />
+          <Briefcase size={18} weight="duotone" className="text-[#FBBF24]" />
           <h3 className="font-display font-bold text-lg uppercase tracking-tight">
             Portfolio P&L
           </h3>
@@ -408,7 +408,7 @@ function PnLDashboard({ pnl, fees, onManage, managing, onRearm, rearming }) {
             disabled={rearming}
             data-testid="rearm-exits-button"
             variant="outline"
-            className="bg-transparent border-[#00E676]/40 text-[#00E676] hover:bg-[#00E676]/10 hover:text-[#00E676]"
+            className="bg-transparent border-[#FDE047]/40 text-[#FDE047] hover:bg-[#FDE047]/10 hover:text-[#FDE047]"
           >
             {rearming ? (
               <ArrowsClockwise size={14} weight="bold" className="mr-2 animate-spin" />
@@ -422,7 +422,7 @@ function PnLDashboard({ pnl, fees, onManage, managing, onRearm, rearming }) {
             disabled={managing}
             data-testid="manage-positions-button"
             variant="outline"
-            className="bg-transparent border-[#00C896]/40 text-[#00C896] hover:bg-[#00C896]/10 hover:text-[#00C896]"
+            className="bg-transparent border-[#FBBF24]/40 text-[#FBBF24] hover:bg-[#FBBF24]/10 hover:text-[#FBBF24]"
           >
             {managing ? (
               <ArrowsClockwise size={14} weight="bold" className="mr-2 animate-spin" />
@@ -437,7 +437,7 @@ function PnLDashboard({ pnl, fees, onManage, managing, onRearm, rearming }) {
         <PnLCard
           label="Total Unrealized P&L"
           value={`${positive ? "+" : ""}${inrFull(totalPnl)}`}
-          color={positive ? "#00E676" : "#FF3B30"}
+          color={positive ? "#FDE047" : "#FF3B30"}
           big
           testid="pnl-total"
         />
@@ -445,14 +445,14 @@ function PnLDashboard({ pnl, fees, onManage, managing, onRearm, rearming }) {
           label="Holdings P&L"
           value={`${(h.unrealized_pnl ?? 0) >= 0 ? "+" : ""}${inrFull(h.unrealized_pnl ?? 0)}`}
           sub={`${pct(h.unrealized_pnl_pct ?? 0)} · ${h.count} stocks`}
-          color={(h.unrealized_pnl ?? 0) >= 0 ? "#00E676" : "#FF3B30"}
+          color={(h.unrealized_pnl ?? 0) >= 0 ? "#FDE047" : "#FF3B30"}
           testid="pnl-holdings"
         />
         <PnLCard
           label="Today's Δ"
           value={`${dayPositive ? "+" : ""}${inrFull(h.day_pnl ?? 0)}`}
           sub="Mark-to-market today"
-          color={dayPositive ? "#00E676" : "#FF3B30"}
+          color={dayPositive ? "#FDE047" : "#FF3B30"}
           testid="pnl-day"
         />
         <PnLCard
@@ -482,7 +482,7 @@ function PnLCard({ label, value, sub, color, big, testid }) {
   return (
     <div
       className={`bg-black/40 border rounded-lg p-4 ${
-        big ? "border-[#00C896]/30 ring-1 ring-[#00C896]/10" : "border-white/10"
+        big ? "border-[#FBBF24]/30 ring-1 ring-[#FBBF24]/10" : "border-white/10"
       }`}
       data-testid={testid}
     >
@@ -506,10 +506,10 @@ function NotConnectedHero({ onConnect, instrumentsLoaded }) {
       className="bg-[#0c0c0c] border border-white/10 rounded-2xl p-8 md:p-14 relative overflow-hidden"
       data-testid="not-connected-hero"
     >
-      <div className="absolute -right-32 -top-32 h-72 w-72 rounded-full bg-[#00C896]/5 blur-3xl" />
+      <div className="absolute -right-32 -top-32 h-72 w-72 rounded-full bg-[#FBBF24]/5 blur-3xl" />
       <div className="relative z-10 max-w-2xl">
         <h2 className="font-display text-3xl md:text-5xl font-black tracking-tight leading-[1.05]">
-          Connect Upstox to <span className="text-[#00C896]">go live</span>.
+          Connect Upstox to <span className="text-[#FBBF24]">go live</span>.
         </h2>
         <p className="mt-5 text-neutral-400 max-w-xl leading-relaxed">
           Authorize via OAuth, place delivery orders on NSE with manual confirmation, view holdings + positions
@@ -523,7 +523,7 @@ function NotConnectedHero({ onConnect, instrumentsLoaded }) {
         <Button
           onClick={onConnect}
           data-testid="hero-connect-button"
-          className="mt-8 bg-[#00C896] hover:bg-[#00A882] text-black font-bold py-6 px-8 tracking-wide"
+          className="mt-8 bg-[#FBBF24] hover:bg-[#D97706] text-black font-bold py-6 px-8 tracking-wide"
         >
           <Plug size={20} weight="fill" className="mr-2" />
           Connect Upstox now
@@ -537,7 +537,7 @@ function NotConnectedHero({ onConnect, instrumentsLoaded }) {
 function Step({ icon: Icon, title, desc }) {
   return (
     <div className="bg-black/40 border border-white/10 rounded-xl p-4">
-      <Icon size={18} weight="duotone" className="text-[#00C896]" />
+      <Icon size={18} weight="duotone" className="text-[#FBBF24]" />
       <div className="font-display font-bold text-base mt-2">{title}</div>
       <div className="text-[12px] text-neutral-500 mt-1">{desc}</div>
     </div>
@@ -621,7 +621,7 @@ function OrderForm({ onSuccess }) {
       <div className="bg-[#0c0c0c] border border-white/10 rounded-xl p-5 md:p-6" data-testid="order-form-card">
         <div className="flex items-center justify-between mb-5">
           <h3 className="font-display font-bold text-lg uppercase tracking-tight">Place Order</h3>
-          <Badge variant="outline" className="border-[#00C896]/40 text-[#00C896] bg-[#00C896]/5 font-mono">
+          <Badge variant="outline" className="border-[#FBBF24]/40 text-[#FBBF24] bg-[#FBBF24]/5 font-mono">
             Manual Confirm
           </Badge>
         </div>
@@ -642,14 +642,14 @@ function OrderForm({ onSuccess }) {
             <div className="text-[11px] font-mono text-neutral-500 mt-1.5 flex items-center gap-2">
               {instLookup ? (
                 <>
-                  <CheckCircle size={12} weight="fill" className="text-[#00E676]" />
+                  <CheckCircle size={12} weight="fill" className="text-[#FDE047]" />
                   <span>{instLookup.name}</span>
                   <span>·</span>
                   <span className="text-neutral-600">{instLookup.instrument_key}</span>
                   {ltp && (
                     <>
                       <span>·</span>
-                      <span className="text-[#00C896]">LTP {inrFull2(ltp)}</span>
+                      <span className="text-[#FBBF24]">LTP {inrFull2(ltp)}</span>
                     </>
                   )}
                 </>
@@ -673,7 +673,7 @@ function OrderForm({ onSuccess }) {
                 className={`py-3 rounded-lg font-display font-bold tracking-wide uppercase border transition-all ${
                   form.transaction_type === side
                     ? side === "BUY"
-                      ? "bg-[#00E676]/15 border-[#00E676] text-[#00E676]"
+                      ? "bg-[#FDE047]/15 border-[#FDE047] text-[#FDE047]"
                       : "bg-[#FF3B30]/15 border-[#FF3B30] text-[#FF3B30]"
                     : "bg-black border-white/10 text-neutral-400 hover:border-white/25"
                 }`}
@@ -757,7 +757,7 @@ function OrderForm({ onSuccess }) {
           {estCost > 0 && (
             <div className="bg-black/40 border border-white/5 rounded-lg p-3 flex justify-between font-mono text-sm">
               <span className="text-neutral-400">Estimated cost:</span>
-              <span className="text-[#00C896] font-bold">{inrFull(estCost)}</span>
+              <span className="text-[#FBBF24] font-bold">{inrFull(estCost)}</span>
             </div>
           )}
 
@@ -765,7 +765,7 @@ function OrderForm({ onSuccess }) {
             type="submit"
             disabled={!instLookup}
             data-testid="order-review-button"
-            className="w-full bg-[#00C896] hover:bg-[#00A882] text-black font-bold py-6 tracking-wide"
+            className="w-full bg-[#FBBF24] hover:bg-[#D97706] text-black font-bold py-6 tracking-wide"
           >
             <ArrowRight size={18} weight="bold" className="mr-2" />
             Review & Confirm Order
@@ -784,14 +784,14 @@ function OrderForm({ onSuccess }) {
           </DialogHeader>
           <div className="space-y-2 font-mono text-sm py-2">
             <Row k="Symbol" v={form.symbol.toUpperCase()} />
-            <Row k="Side" v={form.transaction_type} c={form.transaction_type === "BUY" ? "#00E676" : "#FF3B30"} />
+            <Row k="Side" v={form.transaction_type} c={form.transaction_type === "BUY" ? "#FDE047" : "#FF3B30"} />
             <Row k="Quantity" v={form.quantity} />
             <Row k="Order type" v={form.order_type} />
             {form.order_type === "LIMIT" && <Row k="Price" v={`₹${form.price}`} />}
             <Row k="Product" v={form.product === "D" ? "CNC (Delivery)" : "MIS (Intraday)"} />
             <Row k="Validity" v={form.validity} />
-            {ltp && <Row k="LTP" v={inrFull2(ltp)} c="#00C896" />}
-            {estCost > 0 && <Row k="Est. cost" v={inrFull(estCost)} c="#00C896" />}
+            {ltp && <Row k="LTP" v={inrFull2(ltp)} c="#FBBF24" />}
+            {estCost > 0 && <Row k="Est. cost" v={inrFull(estCost)} c="#FBBF24" />}
           </div>
           <DialogFooter className="gap-2">
             <Button
@@ -807,7 +807,7 @@ function OrderForm({ onSuccess }) {
               onClick={confirmPlace}
               disabled={submitting}
               data-testid="order-confirm-place-button"
-              className="bg-[#00C896] hover:bg-[#00A882] text-black font-bold"
+              className="bg-[#FBBF24] hover:bg-[#D97706] text-black font-bold"
             >
               {submitting ? (
                 <ArrowsClockwise size={16} weight="bold" className="mr-2 animate-spin" />
@@ -837,11 +837,11 @@ function FundsCard({ funds }) {
   return (
     <div className="bg-[#0c0c0c] border border-white/10 rounded-xl p-5 md:p-6" data-testid="funds-card">
       <div className="flex items-center gap-2 mb-4">
-        <Wallet size={18} weight="duotone" className="text-[#00C896]" />
+        <Wallet size={18} weight="duotone" className="text-[#FBBF24]" />
         <h3 className="font-display font-bold text-lg uppercase tracking-tight">Funds (Equity)</h3>
       </div>
       <div className="space-y-3 font-mono text-sm">
-        <KV k="Available margin" v={inrFull(eq.available_margin ?? eq.available_balance ?? 0)} accent="#00E676" />
+        <KV k="Available margin" v={inrFull(eq.available_margin ?? eq.available_balance ?? 0)} accent="#FDE047" />
         <KV k="Used margin" v={inrFull(eq.used_margin ?? eq.utilised_margin ?? 0)} />
         <KV k="Payin amount" v={inrFull(eq.payin_amount ?? 0)} />
         <KV k="Notional cash" v={inrFull(eq.notional_cash ?? 0)} />
@@ -911,7 +911,7 @@ function HoldingsTable({ holdings, swingMap }) {
                   <div className="flex items-center gap-2">
                     <span>{sym}</span>
                     {swing && (
-                      <Badge variant="outline" className="border-[#00C896]/30 text-[#00C896] bg-[#00C896]/5 font-mono text-[9px] uppercase px-1.5 py-0">
+                      <Badge variant="outline" className="border-[#FBBF24]/30 text-[#FBBF24] bg-[#FBBF24]/5 font-mono text-[9px] uppercase px-1.5 py-0">
                         SWG
                       </Badge>
                     )}
@@ -920,10 +920,10 @@ function HoldingsTable({ holdings, swingMap }) {
                 <Td right>{qty}</Td>
                 <Td right>{inrFull2(avg)}</Td>
                 <Td right>{inrFull2(ltp)}</Td>
-                <Td right style={{ color: dayChg >= 0 ? "#00E676" : "#FF3B30" }}>
+                <Td right style={{ color: dayChg >= 0 ? "#FDE047" : "#FF3B30" }}>
                   {pct(dayChgPct)}
                 </Td>
-                <Td right style={{ color: totalChg >= 0 ? "#00E676" : "#FF3B30" }} bold>
+                <Td right style={{ color: totalChg >= 0 ? "#FDE047" : "#FF3B30" }} bold>
                   {totalChg >= 0 ? "+" : ""}{inrFull2(totalChg)} ({pct(totalChgPct)})
                 </Td>
                 <Td right data-testid={`to-target-${sym}`}>
@@ -947,7 +947,7 @@ function HoldingsTable({ holdings, swingMap }) {
         </tbody>
       </table>
       <div className="px-4 py-2 border-t border-white/5 text-[10px] font-mono text-neutral-500 flex items-center gap-3 flex-wrap">
-        <span><span className="text-[#00C896]">SWG</span> = swing position with stored target/stop</span>
+        <span><span className="text-[#FBBF24]">SWG</span> = swing position with stored target/stop</span>
         <span>·</span>
         <span>Otherwise: target = avg × 1.05, stop = avg × 0.97 (default)</span>
       </div>
@@ -961,16 +961,16 @@ function DistanceCell({ pct: distPct, price, kind }) {
   const reachable = Math.abs(distPct) < 0.5; // already at threshold
   let color, label;
   if (kind === "target") {
-    if (distPct <= 0) { color = "#00E676"; label = `HIT +${Math.abs(distPct).toFixed(2)}%`; }
-    else if (distPct < 1) color = "#00E676";
-    else if (distPct < 3) color = "#00C896";
+    if (distPct <= 0) { color = "#FDE047"; label = `HIT +${Math.abs(distPct).toFixed(2)}%`; }
+    else if (distPct < 1) color = "#FDE047";
+    else if (distPct < 3) color = "#FBBF24";
     else color = "#A3A3A3";
     if (distPct > 0) label = `+${distPct.toFixed(2)}%`;
   } else {
     if (distPct <= 0) { color = "#FF3B30"; label = `HIT −${Math.abs(distPct).toFixed(2)}%`; }
     else if (distPct < 1) color = "#FF3B30";
     else if (distPct < 3) color = "#FFA940";
-    else color = "#00E676";
+    else color = "#FDE047";
     if (distPct > 0) label = `−${distPct.toFixed(2)}%`;
   }
   return (
@@ -1044,7 +1044,7 @@ function PositionsTable({ positions, swingMap }) {
                   <div className="flex items-center gap-2">
                     <span>{sym}</span>
                     {swing && (
-                      <Badge variant="outline" className="border-[#00C896]/30 text-[#00C896] bg-[#00C896]/5 font-mono text-[9px] uppercase px-1.5 py-0">
+                      <Badge variant="outline" className="border-[#FBBF24]/30 text-[#FBBF24] bg-[#FBBF24]/5 font-mono text-[9px] uppercase px-1.5 py-0">
                         SWG
                       </Badge>
                     )}
@@ -1075,7 +1075,7 @@ function PositionsTable({ positions, swingMap }) {
                     <span className="text-neutral-600">—</span>
                   )}
                 </Td>
-                <Td right style={{ color: pnlValue >= 0 ? "#00E676" : "#FF3B30" }} bold>
+                <Td right style={{ color: pnlValue >= 0 ? "#FDE047" : "#FF3B30" }} bold>
                   {pnlValue >= 0 ? "+" : ""}{inrFull2(pnlValue)}
                 </Td>
               </tr>
@@ -1083,9 +1083,9 @@ function PositionsTable({ positions, swingMap }) {
           })}
         </tbody>
         <tfoot data-testid="positions-totals">
-          <tr className="border-t-2 border-[#00C896]/20 bg-[#00C896]/[0.03]">
+          <tr className="border-t-2 border-[#FBBF24]/20 bg-[#FBBF24]/[0.03]">
             <Td bold>
-              <span className="font-display uppercase tracking-wide text-[#00C896] text-xs">Total</span>
+              <span className="font-display uppercase tracking-wide text-[#FBBF24] text-xs">Total</span>
             </Td>
             <Td>
               <span className="text-[10px] text-neutral-500 font-mono">{positions.length} pos</span>
@@ -1101,7 +1101,7 @@ function PositionsTable({ positions, swingMap }) {
             </Td>
             <Td right></Td>
             <Td right></Td>
-            <Td right bold style={{ color: totalPnl >= 0 ? "#00E676" : "#FF3B30" }}>
+            <Td right bold style={{ color: totalPnl >= 0 ? "#FDE047" : "#FF3B30" }}>
               <span data-testid="positions-total-pnl">{totalPnl >= 0 ? "+" : ""}{inrFull2(totalPnl)}</span>
             </Td>
           </tr>
@@ -1149,7 +1149,7 @@ function WhatIfBacktest() {
     <div className="bg-[#0c0c0c] border border-white/10 rounded-xl p-5 md:p-6" data-testid="whatif-backtest-card">
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div className="flex items-center gap-2">
-          <ClockClockwise size={18} weight="duotone" className="text-[#00C896]" />
+          <ClockClockwise size={18} weight="duotone" className="text-[#FBBF24]" />
           <div>
             <h3 className="font-display font-bold text-lg uppercase tracking-tight">
               What-If Backtest
@@ -1163,7 +1163,7 @@ function WhatIfBacktest() {
           onClick={run}
           disabled={running}
           data-testid="whatif-run-button"
-          className="bg-[#00C896] hover:bg-[#00A882] text-black font-bold tracking-wide"
+          className="bg-[#FBBF24] hover:bg-[#D97706] text-black font-bold tracking-wide"
         >
           {running ? (
             <ArrowsClockwise size={16} weight="bold" className="mr-2 animate-spin" />
@@ -1177,7 +1177,7 @@ function WhatIfBacktest() {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pb-4 border-b border-white/5">
         <SettingInput label="Drop Min" suffix="%" value={config.drop_min} onChange={(v) => update("drop_min", v)} step={0.25} testid="whatif-drop-min" />
         <SettingInput label="Drop Max" suffix="%" value={config.drop_max} onChange={(v) => update("drop_max", v)} step={0.25} testid="whatif-drop-max" />
-        <SettingInput label="Target" suffix="%" value={config.target_pct} onChange={(v) => update("target_pct", v)} step={0.25} accent="#00E676" testid="whatif-target" />
+        <SettingInput label="Target" suffix="%" value={config.target_pct} onChange={(v) => update("target_pct", v)} step={0.25} accent="#FDE047" testid="whatif-target" />
         <SettingInput label="Stop" suffix="%" value={config.stop_pct} onChange={(v) => update("stop_pct", v)} step={0.25} accent="#FF3B30" testid="whatif-stop" />
         <SettingInput label="Max Hold" suffix="d" value={config.max_holding_days} onChange={(v) => update("max_holding_days", v)} step={1} testid="whatif-maxhold" />
       </div>
@@ -1191,7 +1191,7 @@ function WhatIfBacktest() {
 
       {running && (
         <div className="py-8 text-center text-neutral-500 font-mono text-sm" data-testid="whatif-running">
-          <ArrowsClockwise size={20} weight="bold" className="animate-spin inline mr-2 text-[#00C896]" />
+          <ArrowsClockwise size={20} weight="bold" className="animate-spin inline mr-2 text-[#FBBF24]" />
           Fetching ~67d history × {result?.symbols_count || "—"} stocks · simulating 3 windows…
         </div>
       )}
@@ -1201,7 +1201,7 @@ function WhatIfBacktest() {
           <div className="pt-4 mb-3 flex items-center justify-between flex-wrap gap-2">
             <div className="text-[11px] text-neutral-500 font-mono">
               <span className="text-neutral-300">{result.symbols_count}</span> stocks ·
-              <span className="text-[#00C896] mx-1">{inrFull(result.capital_used)}</span> capital base ·
+              <span className="text-[#FBBF24] mx-1">{inrFull(result.capital_used)}</span> capital base ·
               actual invested {inrFull(result.invested_actual)}
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -1232,7 +1232,7 @@ function SettingInput({ label, suffix, value, onChange, step, accent, testid }) 
     <div>
       <Label className="text-[10px] font-semibold text-neutral-400 uppercase tracking-[0.18em] flex justify-between">
         <span>{label}</span>
-        <span className="font-mono" style={accent ? { color: accent } : { color: "#00C896" }}>
+        <span className="font-mono" style={accent ? { color: accent } : { color: "#FBBF24" }}>
           {value}{suffix}
         </span>
       </Label>
@@ -1259,7 +1259,7 @@ function WindowCard({ w }) {
   const trades = k.total_trades ?? 0;
   return (
     <div
-      className={`bg-black/40 border rounded-xl p-4 ${positive ? "border-[#00E676]/30 ring-1 ring-[#00E676]/10" : "border-[#FF3B30]/30 ring-1 ring-[#FF3B30]/10"}`}
+      className={`bg-black/40 border rounded-xl p-4 ${positive ? "border-[#FDE047]/30 ring-1 ring-[#FDE047]/10" : "border-[#FF3B30]/30 ring-1 ring-[#FF3B30]/10"}`}
       data-testid={`whatif-window-${w.label}`}
     >
       <div className="flex items-center justify-between mb-3">
@@ -1281,24 +1281,24 @@ function WindowCard({ w }) {
           <div className="flex items-end gap-2 mb-3">
             <div
               className="font-display font-black text-2xl tracking-tight leading-none"
-              style={{ color: positive ? "#00E676" : "#FF3B30" }}
+              style={{ color: positive ? "#FDE047" : "#FF3B30" }}
               data-testid={`whatif-pnl-${w.label}`}
             >
               {positive ? "+" : ""}{inrFull(pnl)}
             </div>
             <div
               className="font-mono text-sm leading-none mb-0.5"
-              style={{ color: positive ? "#00E676" : "#FF3B30" }}
+              style={{ color: positive ? "#FDE047" : "#FF3B30" }}
             >
               ({k.return_pct >= 0 ? "+" : ""}{(k.return_pct ?? 0).toFixed(2)}%)
             </div>
           </div>
           <div className="space-y-1.5 text-[11px] font-mono">
-            <RowKV k="Win rate" v={`${winRate.toFixed(0)}%`} accent={winRate >= 50 ? "#00E676" : "#FFA940"} />
+            <RowKV k="Win rate" v={`${winRate.toFixed(0)}%`} accent={winRate >= 50 ? "#FDE047" : "#FFA940"} />
             <RowKV k="Exits" v={`${exitsT}T · ${exitsSL}SL · ${exitsTm}TM`} />
             <RowKV k="Max DD" v={`${(k.max_drawdown_pct ?? 0).toFixed(2)}%`} accent="#FFA940" />
             <RowKV k="Costs" v={`${inrFull(k.total_costs ?? 0)} (${(k.cost_drag_pct ?? 0).toFixed(2)}%)`} accent="#FF6EC7" />
-            <RowKV k="Final" v={inrFull(k.final_portfolio ?? 0)} accent="#00C896" />
+            <RowKV k="Final" v={inrFull(k.final_portfolio ?? 0)} accent="#FBBF24" />
           </div>
         </>
       )}
@@ -1357,7 +1357,7 @@ function OrdersTable({ orders, onCancel }) {
               <tr key={o.order_id || i} className="border-b border-white/5" data-testid={`order-row-${o.order_id}`}>
                 <Td>{o.order_timestamp || ""}</Td>
                 <Td>{o.tradingsymbol || o.trading_symbol}</Td>
-                <Td style={{ color: o.transaction_type === "BUY" ? "#00E676" : "#FF3B30" }}>
+                <Td style={{ color: o.transaction_type === "BUY" ? "#FDE047" : "#FF3B30" }}>
                   {o.transaction_type}
                 </Td>
                 <Td right>{o.quantity}</Td>

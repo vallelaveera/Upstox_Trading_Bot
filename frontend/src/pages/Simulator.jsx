@@ -70,10 +70,10 @@ export default function Simulator() {
             <img src="/logo.svg" alt="Signal Forge" className="h-10 w-10" />
             <div>
               <h1
-                className="font-display text-xl md:text-2xl font-bold tracking-tight leading-none group-hover:text-[#00C896] transition-colors"
+                className="font-display text-xl md:text-2xl font-bold tracking-tight leading-none group-hover:text-[#FBBF24] transition-colors"
                 data-testid="app-title"
               >
-                Signal <span className="text-[#00C896]">Forge</span>
+                Signal <span className="text-[#FBBF24]">Forge</span>
               </h1>
               <p className="text-[11px] text-neutral-500 uppercase tracking-[0.2em] mt-1">
                 Real Time Simulator &amp; Trading Bot
@@ -81,7 +81,7 @@ export default function Simulator() {
             </div>
           </Link>
           <div className="hidden md:flex items-center gap-3 text-xs text-neutral-400">
-            <span className="pulse-dot inline-block h-1.5 w-1.5 rounded-full bg-[#00E676]" />
+            <span className="pulse-dot inline-block h-1.5 w-1.5 rounded-full bg-[#FDE047]" />
             <span className="font-mono uppercase tracking-wider">Yahoo Finance · Live data</span>
             <Link to="/about">
               <Button variant="outline" className="border-white/20 text-white hover:bg-white/10 font-semibold tracking-wide">
@@ -94,7 +94,7 @@ export default function Simulator() {
               </Button>
             </Link>
             <Link to="/live" data-testid="nav-go-live">
-              <Button className="bg-[#00C896] hover:bg-[#00A882] text-black font-bold tracking-wide">
+              <Button className="bg-[#FBBF24] hover:bg-[#D97706] text-black font-bold tracking-wide">
                 <Plug size={14} weight="fill" className="mr-2" />
                 Go Live
               </Button>
@@ -107,9 +107,9 @@ export default function Simulator() {
       <div className="border-b border-white/5 bg-[#111111]/60">
         <div className="max-w-[1600px] mx-auto px-6 md:px-8 py-5">
           <p className="text-sm text-neutral-200 leading-relaxed">
-            <Link to="/about" className="text-[#00C896] hover:underline font-semibold">Signal Forge</Link>
+            <Link to="/about" className="text-[#FBBF24] hover:underline font-semibold">Signal Forge</Link>
             {" "}is a personal trading lab built by{" "}
-            <Link to="/about" className="text-neutral-300 hover:text-[#00C896] transition-colors">Veera Reddy Vallela</Link>
+            <Link to="/about" className="text-neutral-300 hover:text-[#FBBF24] transition-colors">Veera Reddy Vallela</Link>
             {" "}— an AI & data product builder with 8+ years of turning complex data into real-world products.
             Born out of curiosity and a passion for markets, it combines systematic backtesting, live Upstox execution,
             and AI-powered research into a single platform for trading Indian equities.
@@ -126,7 +126,7 @@ export default function Simulator() {
           <TabsTrigger
             value="run"
             data-testid="tab-run"
-            className="data-[state=active]:bg-[#00C896] data-[state=active]:text-black px-5 py-2.5 font-display font-bold tracking-wide uppercase text-sm"
+            className="data-[state=active]:bg-[#FBBF24] data-[state=active]:text-black px-5 py-2.5 font-display font-bold tracking-wide uppercase text-sm"
           >
             <Play size={16} weight="fill" className="mr-2" />
             Single Run
@@ -134,7 +134,7 @@ export default function Simulator() {
           <TabsTrigger
             value="compare"
             data-testid="tab-compare"
-            className="data-[state=active]:bg-[#00C896] data-[state=active]:text-black px-5 py-2.5 font-display font-bold tracking-wide uppercase text-sm"
+            className="data-[state=active]:bg-[#FBBF24] data-[state=active]:text-black px-5 py-2.5 font-display font-bold tracking-wide uppercase text-sm"
           >
             <ChartBar size={16} weight="fill" className="mr-2" />
             Compare 5 Strategies
@@ -155,7 +155,7 @@ export default function Simulator() {
                   onClick={runSim}
                   disabled={running}
                   data-testid="run-simulation-button"
-                  className="w-full bg-[#00C896] hover:bg-[#00A882] text-black font-bold py-6 text-base tracking-wide rounded-lg transition-all"
+                  className="w-full bg-[#FBBF24] hover:bg-[#D97706] text-black font-bold py-6 text-base tracking-wide rounded-lg transition-all"
                 >
                   {running ? (
                     <>
@@ -182,15 +182,15 @@ export default function Simulator() {
 
               {/* Ask AI panel */}
               <Link to="/chat" className="block">
-                <div className="group border border-[#00C896]/20 hover:border-[#00C896]/50 bg-[#00C896]/[0.03] hover:bg-[#00C896]/[0.07] rounded-xl p-4 transition-all cursor-pointer">
+                <div className="group border border-[#FBBF24]/20 hover:border-[#FBBF24]/50 bg-[#FBBF24]/[0.03] hover:bg-[#FBBF24]/[0.07] rounded-xl p-4 transition-all cursor-pointer">
                   <div className="flex items-center gap-2 mb-2">
-                    <Robot size={16} weight="duotone" className="text-[#00C896]" />
-                    <span className="text-xs font-bold text-[#00C896] uppercase tracking-wider">Ask AI</span>
+                    <Robot size={16} weight="duotone" className="text-[#FBBF24]" />
+                    <span className="text-xs font-bold text-[#FBBF24] uppercase tracking-wider">Ask AI</span>
                   </div>
                   <p className="text-[11px] text-neutral-400 leading-relaxed">
                     Ask about any NSE stock — earnings, momentum, historical drops — powered by RAG + Claude.
                   </p>
-                  <span className="mt-3 inline-flex items-center gap-1 text-[11px] text-[#00C896] font-bold group-hover:underline">
+                  <span className="mt-3 inline-flex items-center gap-1 text-[11px] text-[#FBBF24] font-bold group-hover:underline">
                     Open AI Research →
                   </span>
                 </div>

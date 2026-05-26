@@ -266,7 +266,7 @@ export default function StrategyTab({ onOrdersPlaced }) {
       {/* Config Bar */}
       <div className="bg-[#0c0c0c] border border-white/10 rounded-xl p-5 md:p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Robot size={18} weight="duotone" className="text-[#00C896]" />
+          <Robot size={18} weight="duotone" className="text-[#FBBF24]" />
           <h3 className="font-display font-bold text-lg uppercase tracking-tight">
             Apply Strategy · Daily Drop
           </h3>
@@ -302,7 +302,7 @@ export default function StrategyTab({ onOrdersPlaced }) {
               data-testid="strategy-slots-input"
               className="bg-black border-white/10 text-white font-mono mt-2"
             />
-            <div className="text-[10px] font-mono text-[#00C896] mt-1">
+            <div className="text-[10px] font-mono text-[#FBBF24] mt-1">
               {inrFull(perSlot)}/stock
             </div>
           </div>
@@ -346,7 +346,7 @@ export default function StrategyTab({ onOrdersPlaced }) {
           <div className="md:col-span-2">
             <Label className="text-[10px] font-semibold text-neutral-400 uppercase tracking-[0.18em] flex justify-between">
               <span>Drop Band</span>
-              <span className="font-mono text-[#00C896]">
+              <span className="font-mono text-[#FBBF24]">
                 {config.drop_min}% – {config.drop_max}%
               </span>
             </Label>
@@ -376,7 +376,7 @@ export default function StrategyTab({ onOrdersPlaced }) {
           <div className="md:col-span-2 lg:col-span-2">
             <Label className="text-[10px] font-semibold text-neutral-400 uppercase tracking-[0.18em] flex justify-between">
               <span>Min Market Cap</span>
-              <span className="font-mono text-[#00C896]">
+              <span className="font-mono text-[#FBBF24]">
                 {config.min_mcap_cr === 0 ? "any" : `≥ ₹${config.min_mcap_cr.toLocaleString("en-IN")} Cr`}
               </span>
             </Label>
@@ -405,7 +405,7 @@ export default function StrategyTab({ onOrdersPlaced }) {
                   data-testid={`mcap-preset-${p.v}`}
                   className={`text-[10px] font-mono px-2 py-1 rounded border transition-colors ${
                     config.min_mcap_cr === p.v
-                      ? "border-[#00C896]/60 bg-[#00C896]/10 text-[#00C896]"
+                      ? "border-[#FBBF24]/60 bg-[#FBBF24]/10 text-[#FBBF24]"
                       : "border-white/10 text-neutral-400 hover:border-white/25"
                   }`}
                 >
@@ -417,7 +417,7 @@ export default function StrategyTab({ onOrdersPlaced }) {
           <div className="md:col-span-2 lg:col-span-2">
             <Label className="text-[10px] font-semibold text-neutral-400 uppercase tracking-[0.18em] flex justify-between">
               <span>Max Price / Share</span>
-              <span className="font-mono text-[#00C896]">
+              <span className="font-mono text-[#FBBF24]">
                 {config.max_price === 0 ? "any" : `≤ ₹${config.max_price.toLocaleString("en-IN")}`}
               </span>
             </Label>
@@ -446,7 +446,7 @@ export default function StrategyTab({ onOrdersPlaced }) {
                   data-testid={`maxprice-preset-${p.v}`}
                   className={`text-[10px] font-mono px-2 py-1 rounded border transition-colors ${
                     config.max_price === p.v
-                      ? "border-[#00C896]/60 bg-[#00C896]/10 text-[#00C896]"
+                      ? "border-[#FBBF24]/60 bg-[#FBBF24]/10 text-[#FBBF24]"
                       : "border-white/10 text-neutral-400 hover:border-white/25"
                   }`}
                 >
@@ -463,7 +463,7 @@ export default function StrategyTab({ onOrdersPlaced }) {
         {/* Auto-Exit settings */}
         <div className="mt-5 pt-4 border-t border-white/5">
           <div className="flex items-center gap-2 mb-3">
-            <Lightning size={14} weight="duotone" className="text-[#00E676]" />
+            <Lightning size={14} weight="duotone" className="text-[#FDE047]" />
             <Label className="text-[11px] font-semibold text-neutral-400 uppercase tracking-[0.18em]">
               Auto-Exits (placed automatically after each buy)
             </Label>
@@ -472,7 +472,7 @@ export default function StrategyTab({ onOrdersPlaced }) {
             <div>
               <Label className="text-[10px] font-semibold text-neutral-400 uppercase tracking-[0.18em] flex justify-between">
                 <span>Take Profit</span>
-                <span className="font-mono text-[#00E676]">+{config.target_pct}%</span>
+                <span className="font-mono text-[#FDE047]">+{config.target_pct}%</span>
               </Label>
               <Slider
                 min={0.5}
@@ -502,7 +502,7 @@ export default function StrategyTab({ onOrdersPlaced }) {
             <div>
               <Label className="text-[10px] font-semibold text-neutral-400 uppercase tracking-[0.18em] flex justify-between">
                 <span>Max Holding</span>
-                <span className="font-mono text-[#00C896]">{config.max_holding_days}d</span>
+                <span className="font-mono text-[#FBBF24]">{config.max_holding_days}d</span>
               </Label>
               <Slider
                 min={1}
@@ -516,7 +516,7 @@ export default function StrategyTab({ onOrdersPlaced }) {
             </div>
           </div>
           <p className="text-[11px] text-neutral-500 leading-relaxed mt-3">
-            Every buy fires <span className="text-[#00E676]">SELL LIMIT @ +{config.target_pct}%</span> (target) and <span className="text-[#FF3B30]">SELL SL-M @ −{config.stop_pct}%</span> (stop). Time-stop: positions held ≥{config.max_holding_days} days are force-sold via the <strong className="text-[#00C896]">Manage Positions</strong> button.
+            Every buy fires <span className="text-[#FDE047]">SELL LIMIT @ +{config.target_pct}%</span> (target) and <span className="text-[#FF3B30]">SELL SL-M @ −{config.stop_pct}%</span> (stop). Time-stop: positions held ≥{config.max_holding_days} days are force-sold via the <strong className="text-[#FBBF24]">Manage Positions</strong> button.
           </p>
         </div>
 
@@ -574,7 +574,7 @@ export default function StrategyTab({ onOrdersPlaced }) {
                 onClick={executeAll}
                 disabled={!scanResult || executing || selectedPicks.length === 0}
                 data-testid="execute-button"
-                className="bg-[#00C896] hover:bg-[#00A882] text-black font-bold tracking-wide"
+                className="bg-[#FBBF24] hover:bg-[#D97706] text-black font-bold tracking-wide"
               >
                 {executing ? (
                   <ArrowsClockwise size={16} weight="bold" className="mr-2 animate-spin" />
@@ -607,7 +607,7 @@ export default function StrategyTab({ onOrdersPlaced }) {
               <div className="flex items-center gap-3 flex-wrap">
                 <Badge
                   variant="outline"
-                  className="border-[#00C896]/40 text-[#00C896] bg-[#00C896]/5 font-mono"
+                  className="border-[#FBBF24]/40 text-[#FBBF24] bg-[#FBBF24]/5 font-mono"
                   data-testid="selection-summary"
                 >
                   {selectedPicks.length}/{config.slots} selected · {inrFull(totalSelectedCost)}
@@ -616,7 +616,7 @@ export default function StrategyTab({ onOrdersPlaced }) {
                   type="button"
                   onClick={selectTopN}
                   data-testid="select-top-n"
-                  className="text-[11px] font-mono text-neutral-400 hover:text-[#00C896] underline-offset-4 hover:underline"
+                  className="text-[11px] font-mono text-neutral-400 hover:text-[#FBBF24] underline-offset-4 hover:underline"
                 >
                   Pick top {config.slots} by drop
                 </button>
@@ -634,7 +634,7 @@ export default function StrategyTab({ onOrdersPlaced }) {
                   onClick={analyzeWithAI}
                   disabled={analyzing}
                   data-testid="analyze-ai-button"
-                  className="border-[#00C896]/40 text-[#00C896] hover:bg-[#00C896]/10 hover:text-[#00C896] text-xs font-bold"
+                  className="border-[#FBBF24]/40 text-[#FBBF24] hover:bg-[#FBBF24]/10 hover:text-[#FBBF24] text-xs font-bold"
                 >
                   {analyzing ? (
                     <ArrowsClockwise size={12} weight="bold" className="mr-1.5 animate-spin" />
@@ -679,7 +679,7 @@ export default function StrategyTab({ onOrdersPlaced }) {
                       <tr
                         key={c.symbol}
                         className={`border-b border-white/5 hover:bg-white/[0.02] ${
-                          isSel ? "bg-[#00C896]/[0.05]" : ""
+                          isSel ? "bg-[#FBBF24]/[0.05]" : ""
                         }`}
                         data-testid={`candidate-row-${c.symbol}`}
                       >
@@ -689,11 +689,11 @@ export default function StrategyTab({ onOrdersPlaced }) {
                             onCheckedChange={() => toggleSelect(c.symbol)}
                             disabled={executing || (qty <= 0)}
                             data-testid={`select-${c.symbol}`}
-                            className="border-white/30 data-[state=checked]:bg-[#00C896] data-[state=checked]:border-[#00C896] data-[state=checked]:text-black"
+                            className="border-white/30 data-[state=checked]:bg-[#FBBF24] data-[state=checked]:border-[#FBBF24] data-[state=checked]:text-black"
                           />
                         </Td>
                         <Td>
-                          <span className={`font-bold ${isSel ? "text-[#00C896]" : "text-neutral-500"}`}>
+                          <span className={`font-bold ${isSel ? "text-[#FBBF24]" : "text-neutral-500"}`}>
                             {i + 1}
                           </span>
                         </Td>
@@ -719,7 +719,7 @@ export default function StrategyTab({ onOrdersPlaced }) {
                         <Td right style={{ color: "#FF3B30" }} bold>
                           −{c.drop_pct}%
                         </Td>
-                        <Td right style={{ color: wkDrop > 0 ? "#FF3B30" : wkDrop < 0 ? "#00E676" : "#A3A3A3" }}>
+                        <Td right style={{ color: wkDrop > 0 ? "#FF3B30" : wkDrop < 0 ? "#FDE047" : "#A3A3A3" }}>
                           {wkDrop > 0 ? "−" : wkDrop < 0 ? "+" : ""}
                           {Math.abs(wkDrop).toFixed(2)}%
                         </Td>
@@ -734,7 +734,7 @@ export default function StrategyTab({ onOrdersPlaced }) {
                               onClick={() => setConfirmOneOpen(c)}
                               data-testid={`buy-one-${c.symbol}`}
                               disabled={executing}
-                              className="text-[#00E676] hover:underline text-xs font-bold"
+                              className="text-[#FDE047] hover:underline text-xs font-bold"
                             >
                               Buy →
                             </button>
@@ -766,7 +766,7 @@ export default function StrategyTab({ onOrdersPlaced }) {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2 font-mono text-sm py-2">
-            <Row k="Capital deployed" v={inrFull(config.capital)} c="#00C896" />
+            <Row k="Capital deployed" v={inrFull(config.capital)} c="#FBBF24" />
             <Row k="Slots" v={config.slots} />
             <Row k="Per stock" v={inrFull(perSlot)} />
             <Row k="Universe" v={config.universe.toUpperCase()} />
@@ -811,10 +811,10 @@ export default function StrategyTab({ onOrdersPlaced }) {
             <div className="space-y-2 font-mono text-sm py-2">
               <Row k="Symbol" v={confirmOneOpen.symbol} />
               <Row k="Sector" v={confirmOneOpen.sector} />
-              <Row k="LTP" v={inrFull2(confirmOneOpen.ltp)} c="#00C896" />
+              <Row k="LTP" v={inrFull2(confirmOneOpen.ltp)} c="#FBBF24" />
               <Row k="Drop today" v={`−${confirmOneOpen.drop_pct}%`} c="#FF3B30" />
               <Row k="Qty" v={Math.floor(perSlot / confirmOneOpen.ltp)} />
-              <Row k="Est. cost" v={inrFull2(Math.floor(perSlot / confirmOneOpen.ltp) * confirmOneOpen.ltp)} c="#00C896" />
+              <Row k="Est. cost" v={inrFull2(Math.floor(perSlot / confirmOneOpen.ltp) * confirmOneOpen.ltp)} c="#FBBF24" />
               <Row k="Order type" v="MARKET" />
               <Row k="Product" v={config.product === "D" ? "CNC Delivery" : "MIS Intraday"} />
             </div>
@@ -832,7 +832,7 @@ export default function StrategyTab({ onOrdersPlaced }) {
               onClick={() => buyOne(confirmOneOpen)}
               disabled={executing}
               data-testid="buy-one-confirm"
-              className="bg-[#00E676] hover:bg-[#00C766] text-black font-bold"
+              className="bg-[#FDE047] hover:bg-[#00C766] text-black font-bold"
             >
               <Lightning size={16} weight="fill" className="mr-2" />
               Confirm Buy
@@ -849,16 +849,16 @@ function ExecutionResultCard({ result }) {
     <div className="bg-[#0c0c0c] border border-white/10 rounded-xl p-5 md:p-6" data-testid="execution-result-card">
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <div className="flex items-center gap-2">
-          <ListChecks size={18} weight="duotone" className="text-[#00C896]" />
+          <ListChecks size={18} weight="duotone" className="text-[#FBBF24]" />
           <h3 className="font-display font-bold text-lg uppercase tracking-tight">
             Execution Result
           </h3>
         </div>
         <div className="flex items-center gap-3 text-xs font-mono">
-          <span className="text-[#00E676]">{result.placed} placed</span>
+          <span className="text-[#FDE047]">{result.placed} placed</span>
           <span className="text-neutral-500">{result.skipped} skipped</span>
           <span className="text-[#FF3B30]">{result.failed} failed</span>
-          <Badge variant="outline" className="border-[#00C896]/40 text-[#00C896] bg-[#00C896]/5">
+          <Badge variant="outline" className="border-[#FBBF24]/40 text-[#FBBF24] bg-[#FBBF24]/5">
             <Coins size={12} weight="fill" className="mr-1" /> ~{inrFull(result.total_invested_estimate)}
           </Badge>
         </div>
@@ -872,7 +872,7 @@ function ExecutionResultCard({ result }) {
           >
             <div className="flex items-center gap-3">
               {r.status === "placed" && (
-                <CheckCircle size={20} weight="fill" className="text-[#00E676]" />
+                <CheckCircle size={20} weight="fill" className="text-[#FDE047]" />
               )}
               {r.status === "skipped" && <Warning size={20} weight="fill" className="text-neutral-500" />}
               {r.status === "failed" && <XCircle size={20} weight="fill" className="text-[#FF3B30]" />}
@@ -887,7 +887,7 @@ function ExecutionResultCard({ result }) {
               </div>
             </div>
             {r.status === "placed" && (
-              <span className="font-mono font-bold text-[#00C896] text-sm">
+              <span className="font-mono font-bold text-[#FBBF24] text-sm">
                 {inrFull2(r.estimated_cost)}
               </span>
             )}
@@ -940,22 +940,22 @@ function fmtMcap(cr) {
 
 function mcapTier(cr) {
   if (cr >= 20000) return { tier: "Large", color: "text-[#A78BFA]" };
-  if (cr >= 5000) return { tier: "Mid", color: "text-[#00C896]" };
+  if (cr >= 5000) return { tier: "Mid", color: "text-[#FBBF24]" };
   if (cr >= 1000) return { tier: "Small", color: "text-[#FFA940]" };
   return { tier: "Micro", color: "text-[#FF3B30]" };
 }
 
 const SIGNAL_CONFIG = {
-  "Market dip":       { color: "#00C896", bg: "bg-[#00C896]/10 border-[#00C896]/30" },
-  "Profit booking":   { color: "#00C896", bg: "bg-[#00C896]/10 border-[#00C896]/30" },
-  "Oversold bounce":  { color: "#00E676", bg: "bg-[#00E676]/10 border-[#00E676]/30" },
+  "Market dip":       { color: "#FBBF24", bg: "bg-[#FBBF24]/10 border-[#FBBF24]/30" },
+  "Profit booking":   { color: "#FBBF24", bg: "bg-[#FBBF24]/10 border-[#FBBF24]/30" },
+  "Oversold bounce":  { color: "#FDE047", bg: "bg-[#FDE047]/10 border-[#FDE047]/30" },
   "Sector rotation":  { color: "#FFA940", bg: "bg-[#FFA940]/10 border-[#FFA940]/30" },
   "Unclear":          { color: "#A3A3A3", bg: "bg-white/5 border-white/10" },
   "Bad news risk":    { color: "#FF3B30", bg: "bg-[#FF3B30]/10 border-[#FF3B30]/30" },
 };
 
 function scoreColor(score) {
-  if (score >= 7) return "#00C896";
+  if (score >= 7) return "#FBBF24";
   if (score >= 4) return "#FFA940";
   return "#FF3B30";
 }

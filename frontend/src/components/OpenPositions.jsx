@@ -9,7 +9,7 @@ export default function OpenPositions({ positions }) {
     >
       <div className="p-5 md:p-6 border-b border-white/5 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Briefcase size={18} weight="duotone" className="text-[#00C896]" />
+          <Briefcase size={18} weight="duotone" className="text-[#FBBF24]" />
           <h3 className="font-display font-bold text-lg uppercase tracking-tight">
             Open Positions
           </h3>
@@ -27,7 +27,7 @@ export default function OpenPositions({ positions }) {
         )}
         {positions?.map((p) => {
           const positive = p.unrealized_pnl >= 0;
-          const c = positive ? "#00E676" : "#FF3B30";
+          const c = positive ? "#FDE047" : "#FF3B30";
           return (
             <div
               key={p.symbol}

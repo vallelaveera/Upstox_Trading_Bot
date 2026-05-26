@@ -27,7 +27,7 @@ export default function KpiCards({ kpis, simStart, simEnd }) {
       value: inrFull(kpis.final_portfolio),
       sub: `${pct(kpis.return_pct)} return after costs`,
       icon: Stack,
-      color: positive ? "#00E676" : "#FF3B30",
+      color: positive ? "#FDE047" : "#FF3B30",
     },
     {
       key: "gross-pnl",
@@ -35,7 +35,7 @@ export default function KpiCards({ kpis, simStart, simEnd }) {
       value: `${grossPositive ? "+" : ""}${inrFull(kpis.gross_pnl ?? kpis.net_pnl)}`,
       sub: "Before costs (the headline)",
       icon: grossPositive ? TrendUp : TrendDown,
-      color: grossPositive ? "#00E676" : "#FF3B30",
+      color: grossPositive ? "#FDE047" : "#FF3B30",
     },
     {
       key: "total-costs",
@@ -51,7 +51,7 @@ export default function KpiCards({ kpis, simStart, simEnd }) {
       value: `${positive ? "+" : ""}${inrFull(kpis.net_pnl)}`,
       sub: `Cost drag −${(kpis.cost_drag_pct ?? 0).toFixed(2)}% of capital`,
       icon: positive ? TrendUp : TrendDown,
-      color: positive ? "#00E676" : "#FF3B30",
+      color: positive ? "#FDE047" : "#FF3B30",
       big: true,
     },
     {
@@ -60,7 +60,7 @@ export default function KpiCards({ kpis, simStart, simEnd }) {
       value: `${kpis.win_rate.toFixed(1)}%`,
       sub: `${kpis.wins}W · ${kpis.losses}L of ${kpis.closed_trades} closed`,
       icon: Trophy,
-      color: "#00C896",
+      color: "#FBBF24",
     },
     {
       key: "total-trades",
@@ -82,7 +82,7 @@ export default function KpiCards({ kpis, simStart, simEnd }) {
           key={key}
           data-testid={`kpi-${key}`}
           className={`relative bg-[#0c0c0c] border rounded-xl p-4 md:p-5 hover:border-white/20 transition-colors group overflow-hidden ${
-            big ? "border-[#00C896]/30 ring-1 ring-[#00C896]/10" : "border-white/10"
+            big ? "border-[#FBBF24]/30 ring-1 ring-[#FBBF24]/10" : "border-white/10"
           }`}
         >
           <div

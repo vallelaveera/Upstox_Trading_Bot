@@ -94,7 +94,7 @@ export default function About() {
             <img src="/logo.svg" alt="Signal Forge" className="h-10 w-10" />
             <div>
               <h1 className="font-display text-xl md:text-2xl font-bold tracking-tight leading-none">
-                Signal <span className="text-[#00C896]">Forge</span>
+                Signal <span className="text-[#FBBF24]">Forge</span>
               </h1>
               <p className="text-[11px] text-neutral-500 uppercase tracking-[0.2em] mt-1">
                 Real Time Simulator &amp; Trading Bot
@@ -113,7 +113,7 @@ export default function About() {
               </Button>
             </Link>
             <Link to="/live">
-              <Button className="bg-[#00C896] hover:bg-[#00A882] text-black font-bold tracking-wide text-xs">
+              <Button className="bg-[#FBBF24] hover:bg-[#D97706] text-black font-bold tracking-wide text-xs">
                 <Plug size={14} weight="fill" className="mr-2" />
                 Go Live
               </Button>
@@ -130,12 +130,12 @@ export default function About() {
             <img
               src="/photo.jpg"
               alt="Veera Reddy Vallela"
-              className="h-36 w-36 rounded-full object-cover border-2 border-[#00C896]/40"
+              className="h-36 w-36 rounded-full object-cover border-2 border-[#FBBF24]/40"
             />
           </div>
           <div className="flex-1 text-center md:text-left">
             <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight">
-              Veera Reddy <span className="text-[#00C896]">Vallela</span>
+              Veera Reddy <span className="text-[#FBBF24]">Vallela</span>
             </h2>
             <p className="mt-1 text-neutral-400 text-sm uppercase tracking-[0.15em] font-medium">
               AI / Data Product Owner · Python Engineer
@@ -152,7 +152,7 @@ export default function About() {
             <div className="mt-6 flex flex-wrap items-center gap-3 justify-center md:justify-start">
               <a
                 href="mailto:veera.reddy619@gmail.com"
-                className="flex items-center gap-2 text-xs text-neutral-400 hover:text-[#00C896] transition-colors border border-white/10 hover:border-[#00C896]/40 rounded-lg px-4 py-2"
+                className="flex items-center gap-2 text-xs text-neutral-400 hover:text-[#FBBF24] transition-colors border border-white/10 hover:border-[#FBBF24]/40 rounded-lg px-4 py-2"
               >
                 <EnvelopeSimple size={15} />
                 veera.reddy619@gmail.com
@@ -161,7 +161,7 @@ export default function About() {
                 href="https://www.linkedin.com/in/veera-reddy-v-70639861/"
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-2 text-xs text-neutral-400 hover:text-[#00C896] transition-colors border border-white/10 hover:border-[#00C896]/40 rounded-lg px-4 py-2"
+                className="flex items-center gap-2 text-xs text-neutral-400 hover:text-[#FBBF24] transition-colors border border-white/10 hover:border-[#FBBF24]/40 rounded-lg px-4 py-2"
               >
                 <LinkedinLogo size={15} />
                 LinkedIn
@@ -170,7 +170,7 @@ export default function About() {
                 href="https://github.com/vallelaveera"
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-2 text-xs text-neutral-400 hover:text-[#00C896] transition-colors border border-white/10 hover:border-[#00C896]/40 rounded-lg px-4 py-2"
+                className="flex items-center gap-2 text-xs text-neutral-400 hover:text-[#FBBF24] transition-colors border border-white/10 hover:border-[#FBBF24]/40 rounded-lg px-4 py-2"
               >
                 <GithubLogo size={15} />
                 GitHub
@@ -178,7 +178,7 @@ export default function About() {
               <a
                 href="/cv.pdf"
                 download
-                className="flex items-center gap-2 text-xs bg-[#00C896] hover:bg-[#00A882] text-black font-bold rounded-lg px-4 py-2 transition-colors"
+                className="flex items-center gap-2 text-xs bg-[#FBBF24] hover:bg-[#D97706] text-black font-bold rounded-lg px-4 py-2 transition-colors"
               >
                 <DownloadSimple size={15} weight="bold" />
                 Download CV
@@ -194,7 +194,7 @@ export default function About() {
             {SKILLS.map((s) => (
               <span
                 key={s}
-                className="text-xs border border-white/10 text-neutral-300 rounded-full px-3 py-1 bg-white/[0.03] hover:border-[#00C896]/40 hover:text-[#00C896] transition-colors"
+                className="text-xs border border-white/10 text-neutral-300 rounded-full px-3 py-1 bg-white/[0.03] hover:border-[#FBBF24]/40 hover:text-[#FBBF24] transition-colors"
               >
                 {s}
               </span>
@@ -208,7 +208,7 @@ export default function About() {
           <div className="mt-4 space-y-8">
             {EXPERIENCE.map((job) => (
               <div key={job.title + job.company} className="relative pl-5 border-l border-white/10">
-                <div className="absolute -left-[5px] top-1.5 h-2.5 w-2.5 rounded-full bg-[#00C896]" />
+                <div className="absolute -left-[5px] top-1.5 h-2.5 w-2.5 rounded-full bg-[#FBBF24]" />
                 <div className="flex items-center gap-3 flex-wrap">
                   <img
                     src={job.logo}
@@ -217,7 +217,7 @@ export default function About() {
                   />
                   <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
                     <span className="font-display font-bold text-white text-sm">{job.title}</span>
-                    <span className="text-[#00C896] text-xs font-semibold">{job.company}</span>
+                    <span className="text-[#FBBF24] text-xs font-semibold">{job.company}</span>
                     {job.location && <span className="text-neutral-500 text-xs">{job.location}</span>}
                     {job.about && <CompanyTooltip text={job.about} />}
                   </div>
@@ -226,7 +226,7 @@ export default function About() {
                 <ul className="space-y-1.5">
                   {job.bullets.map((b) => (
                     <li key={b} className="text-neutral-200 text-sm leading-relaxed flex gap-2">
-                      <span className="text-[#00C896] mt-1.5 shrink-0">›</span>
+                      <span className="text-[#FBBF24] mt-1.5 shrink-0">›</span>
                       {b}
                     </li>
                   ))}
@@ -243,9 +243,9 @@ export default function About() {
             <div className="mt-4 space-y-4">
               {EDUCATION.map((e) => (
                 <div key={e.degree} className="pl-5 border-l border-white/10 relative">
-                  <div className="absolute -left-[5px] top-1.5 h-2.5 w-2.5 rounded-full bg-[#00C896]" />
+                  <div className="absolute -left-[5px] top-1.5 h-2.5 w-2.5 rounded-full bg-[#FBBF24]" />
                   <p className="font-semibold text-sm text-white">{e.degree}</p>
-                  <p className="text-[#00C896] text-xs">{e.school}</p>
+                  <p className="text-[#FBBF24] text-xs">{e.school}</p>
                   <p className="text-neutral-500 text-xs font-mono">{e.year}</p>
                 </div>
               ))}
@@ -295,7 +295,7 @@ function CompanyTooltip({ text }) {
         onMouseEnter={() => setVisible(true)}
         onMouseLeave={() => setVisible(false)}
         onClick={() => setVisible((v) => !v)}
-        className="text-neutral-600 hover:text-[#00C896] transition-colors ml-1"
+        className="text-neutral-600 hover:text-[#FBBF24] transition-colors ml-1"
       >
         <Info size={13} weight="fill" />
       </button>
