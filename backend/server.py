@@ -161,27 +161,47 @@ async def list_nifty50():
 
 @api_router.get("/ticker")
 async def get_ticker():
-    """Live prices for a selection of Nifty 50 stocks for the ticker tape."""
+    """Live prices for stocks and indices for the ticker tape."""
     import yfinance as yf
     from nifty50 import yf_ticker
-    symbols = ["RELIANCE", "TCS", "INFY", "HDFCBANK", "ICICIBANK",
-               "HINDUNILVR", "BAJFINANCE", "SBIN", "WIPRO", "LT",
-               "AXISBANK", "MARUTI", "TITAN", "ADANIENT", "ONGC"]
+
+    STOCK_SYMBOLS = ["RELIANCE", "TCS", "INFY", "HDFCBANK", "ICICIBANK",
+                     "HINDUNILVR", "BAJFINANCE", "SBIN", "WIPRO", "LT",
+                     "AXISBANK", "MARUTI", "TITAN", "ADANIENT", "ONGC"]
+
+    INDEX_SYMBOLS = [
+        ("NIFTY 50", "^NSEI"),
+        ("SENSEX", "^BSESN"),
+        ("BANK NIFTY", "^NSEBANK"),
+        ("NIFTY IT", "^CNXIT"),
+        ("NIFTY MID", "^NSEMDCP50"),
+        ("NIFTY AUTO", "^CNXAUTO"),
+    ]
+
     def _fetch():
-        results = []
-        for sym in symbols:
+        stocks, indices = [], []
+        for sym in STOCK_SYMBOLS:
             try:
-                t = yf.Ticker(yf_ticker(sym))
-                info = t.fast_info
+                info = yf.Ticker(yf_ticker(sym)).fast_info
                 price = round(float(info.last_price), 2)
                 prev = round(float(info.previous_close), 2)
                 chg = round((price - prev) / prev * 100, 2) if prev else 0.0
-                results.append({"symbol": sym, "price": price, "change_pct": chg})
+                stocks.append({"symbol": sym, "price": price, "change_pct": chg})
             except Exception:
                 pass
-        return results
+        for name, yticker in INDEX_SYMBOLS:
+            try:
+                info = yf.Ticker(yticker).fast_info
+                price = round(float(info.last_price), 2)
+                prev = round(float(info.previous_close), 2)
+                chg = round((price - prev) / prev * 100, 2) if prev else 0.0
+                indices.append({"symbol": name, "price": price, "change_pct": chg})
+            except Exception:
+                pass
+        return {"stocks": stocks, "indices": indices}
+
     data = await run_in_threadpool(_fetch)
-    return {"tickers": data}
+    return data
 
 
 @api_router.get("/universe/{key}")
