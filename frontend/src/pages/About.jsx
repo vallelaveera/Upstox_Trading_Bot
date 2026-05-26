@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Plug, EnvelopeSimple, LinkedinLogo, GithubLogo, DownloadSimple } from "@phosphor-icons/react";
+import { Plug, EnvelopeSimple, LinkedinLogo, GithubLogo, DownloadSimple, Info } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 
 const SKILLS = [
@@ -16,6 +17,7 @@ const EXPERIENCE = [
     title: "AI/Data Product Owner",
     company: "Matchory GmbH",
     logo: "/matchory.png",
+    about: "Matchory is a B2B supplier intelligence platform that helps procurement teams discover and evaluate suppliers globally using AI-powered data enrichment and entity resolution.",
     location: "Heilbronn, Germany",
     period: "03/2025 – Present",
     bullets: [
@@ -30,6 +32,7 @@ const EXPERIENCE = [
     title: "Co-Founder & Data Product Owner",
     company: "7Q1 — AI Based Supplier Search Engine",
     logo: "/7q1.jpg",
+    about: "7Q1 is an AI-based supplier search engine co-founded by Veera, built to automate supplier discovery and intelligence for industrial procurement teams using NLP and large-scale web data.",
     location: "Stuttgart, Germany",
     period: "05/2020 – 03/2025",
     bullets: [
@@ -44,6 +47,7 @@ const EXPERIENCE = [
     title: "Data Engineer & 1st Employee",
     company: "Scoutbee GmbH",
     logo: "/scoutbee.png",
+    about: "Scoutbee is an AI-powered supplier discovery platform that raised $76M in funding. It helps global enterprises find and qualify suppliers at scale using machine learning and data intelligence.",
     location: "Würzburg, Germany",
     period: "11/2016 – 03/2020",
     bullets: [
@@ -58,6 +62,7 @@ const EXPERIENCE = [
     title: "Intern & Master's Thesis",
     company: "Bosch Power Tools",
     logo: "/bosch.png",
+    about: "Bosch is a global engineering and technology company. Bosch Power Tools is one of the world's leading manufacturers of power tools, accessories, and measuring technology.",
     location: "",
     period: "09/2015 – 09/2016",
     bullets: [
@@ -214,6 +219,7 @@ export default function About() {
                     <span className="font-display font-bold text-white text-sm">{job.title}</span>
                     <span className="text-[#00C896] text-xs font-semibold">{job.company}</span>
                     {job.location && <span className="text-neutral-500 text-xs">{job.location}</span>}
+                    {job.about && <CompanyTooltip text={job.about} />}
                   </div>
                 </div>
                 <p className="text-neutral-500 text-xs mt-0.5 mb-3 font-mono">{job.period}</p>
@@ -278,6 +284,27 @@ export default function About() {
 
       </main>
     </div>
+  );
+}
+
+function CompanyTooltip({ text }) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <span className="relative inline-flex items-center">
+      <button
+        onMouseEnter={() => setVisible(true)}
+        onMouseLeave={() => setVisible(false)}
+        onClick={() => setVisible((v) => !v)}
+        className="text-neutral-600 hover:text-[#00C896] transition-colors ml-1"
+      >
+        <Info size={13} weight="fill" />
+      </button>
+      {visible && (
+        <span className="absolute left-5 top-0 z-50 w-64 bg-[#1a1a1a] border border-white/10 rounded-lg px-3 py-2.5 text-xs text-neutral-300 leading-relaxed shadow-xl">
+          {text}
+        </span>
+      )}
+    </span>
   );
 }
 
