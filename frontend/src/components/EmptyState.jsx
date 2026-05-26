@@ -22,7 +22,7 @@ export default function EmptyState() {
           on the last <span className="font-mono">N</span> weeks of NSE.
         </h2>
 
-        <p className="mt-5 text-neutral-400 text-sm md:text-base max-w-xl leading-relaxed">
+        <p className="mt-5 text-neutral-200 text-sm md:text-base max-w-xl leading-relaxed">
           Drop ₹5L of paper capital into the engine. We scan Nifty 50 daily, buy
           stocks dipping inside your dip-band, sell on target or stop-loss. Tweak
           the filters, then mash the yellow button.
@@ -73,7 +73,7 @@ function Step({ n, icon: Icon, title, desc }) {
         <Icon size={18} weight="duotone" className="text-[#00C896]" />
       </div>
       <div className="font-display font-bold text-base">{title}</div>
-      <div className="text-[12px] text-neutral-500 mt-1">{desc}</div>
+      <div className="text-[12px] text-neutral-400 mt-1">{desc}</div>
     </div>
   );
 }

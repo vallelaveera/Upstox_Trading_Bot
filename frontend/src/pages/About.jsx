@@ -86,9 +86,9 @@ const LANGUAGES = [
 
 export default function About() {
   return (
-    <div className="min-h-screen bg-[#0d0d0d] text-white bg-grid bg-noise">
+    <div className="min-h-screen bg-[#0a0a0a] text-white bg-grid bg-noise">
       {/* Header */}
-      <header className="border-b border-white/5 sticky top-0 z-30 backdrop-blur-md bg-[#0d0d0d]/80">
+      <header className="border-b border-white/5 sticky top-0 z-30 backdrop-blur-md bg-[#0a0a0a]/80">
         <div className="max-w-[1600px] mx-auto px-6 md:px-8 py-5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <img src="/logo.svg" alt="Signal Forge" className="h-10 w-10" />
@@ -140,7 +140,7 @@ export default function About() {
             <p className="mt-1 text-neutral-400 text-sm uppercase tracking-[0.15em] font-medium">
               AI / Data Product Owner · Python Engineer
             </p>
-            <p className="mt-5 text-neutral-300 leading-relaxed max-w-xl text-sm md:text-base">
+            <p className="mt-5 text-white leading-relaxed max-w-xl text-sm md:text-base">
               With over 8 years of experience building data-driven and AI-powered products,
               I specialise in turning complex, unstructured textual data into scalable,
               real-world solutions. From being the 1st employee at Scoutbee — where I helped
@@ -225,7 +225,7 @@ export default function About() {
                 <p className="text-neutral-500 text-xs mt-0.5 mb-3 font-mono">{job.period}</p>
                 <ul className="space-y-1.5">
                   {job.bullets.map((b) => (
-                    <li key={b} className="text-neutral-400 text-sm leading-relaxed flex gap-2">
+                    <li key={b} className="text-neutral-200 text-sm leading-relaxed flex gap-2">
                       <span className="text-[#00C896] mt-1.5 shrink-0">›</span>
                       {b}
                     </li>

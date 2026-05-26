@@ -178,9 +178,9 @@ export default function Chat() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white bg-grid bg-noise flex flex-col">
+    <div className="min-h-screen bg-[#0a0a0a] text-white bg-grid bg-noise flex flex-col">
       {/* Header */}
-      <header className="border-b border-white/5 sticky top-0 z-30 backdrop-blur-md bg-[#050505]/80">
+      <header className="border-b border-white/5 sticky top-0 z-30 backdrop-blur-md bg-[#0a0a0a]/80">
         <div className="max-w-[900px] mx-auto px-6 py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="h-9 w-9 rounded-lg bg-[#00C896] flex items-center justify-center text-black">
@@ -260,7 +260,7 @@ export default function Chat() {
       )}
 
       {/* Input */}
-      <div className="sticky bottom-0 bg-[#050505]/90 backdrop-blur-md border-t border-white/5">
+      <div className="sticky bottom-0 bg-[#0a0a0a]/90 backdrop-blur-md border-t border-white/5">
         <div className="max-w-[900px] mx-auto px-6 py-4">
           <div className="flex gap-3 items-end">
             <textarea
