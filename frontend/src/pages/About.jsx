@@ -27,7 +27,7 @@ const EXPERIENCE = [
     ],
   },
   {
-    title: "Data Product Owner",
+    title: "Co-Founder & Data Product Owner",
     company: "7Q1 — AI Based Supplier Search Engine",
     logo: "/7q1.jpg",
     location: "Stuttgart, Germany",
