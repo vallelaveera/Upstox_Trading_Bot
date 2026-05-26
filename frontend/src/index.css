@@ -133,6 +133,19 @@ code {
     animation: shimmer 1.6s ease-in-out infinite;
 }
 
+/* Ticker tape scroll */
+@keyframes tickerScroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+.ticker-scroll {
+    animation: tickerScroll 40s linear infinite;
+    width: max-content;
+}
+.ticker-scroll:hover {
+    animation-play-state: paused;
+}
+
 ::selection {
     background: #e2ff00;
     color: #050505;

@@ -17,6 +17,10 @@ import TradesTable from "@/components/TradesTable";
 import OpenPositions from "@/components/OpenPositions";
 import EmptyState from "@/components/EmptyState";
 import ComparePanel from "@/components/ComparePanel";
+import TickerTape from "@/components/TickerTape";
+import TechStackPanel from "@/components/TechStackPanel";
+import TradeDistribution from "@/components/TradeDistribution";
+import ActivityLog from "@/components/ActivityLog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { DEFAULT_FILTERS } from "@/lib/strategies";
@@ -102,6 +106,8 @@ export default function Simulator() {
           </div>
         </div>
       </header>
+
+      <TickerTape />
 
       {/* Tagline banner */}
       <div className="border-b border-white/5 bg-[#111111]/60">
@@ -195,6 +201,9 @@ export default function Simulator() {
                   </span>
                 </div>
               </Link>
+
+              <TechStackPanel />
+              <ActivityLog running={running} result={result} />
             </aside>
 
             <section className="lg:col-span-3 space-y-4 md:space-y-6">
@@ -210,7 +219,9 @@ export default function Simulator() {
                   <EquityChart
                     data={result.equity_curve}
                     starting={result.kpis.starting_capital}
+                    benchmark={result.benchmark_curve}
                   />
+                  <TradeDistribution trades={result.trades} />
                   <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-6">
                     <div className="xl:col-span-2">
                       <TradesTable trades={result.trades} />

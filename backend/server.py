@@ -159,6 +159,31 @@ async def list_nifty50():
     return {"stocks": stocks, "sectors": sectors, "count": len(stocks)}
 
 
+@api_router.get("/ticker")
+async def get_ticker():
+    """Live prices for a selection of Nifty 50 stocks for the ticker tape."""
+    import yfinance as yf
+    from nifty50 import yf_ticker
+    symbols = ["RELIANCE", "TCS", "INFY", "HDFCBANK", "ICICIBANK",
+               "HINDUNILVR", "BAJFINANCE", "SBIN", "WIPRO", "LT",
+               "AXISBANK", "MARUTI", "TITAN", "ADANIENT", "ONGC"]
+    def _fetch():
+        results = []
+        for sym in symbols:
+            try:
+                t = yf.Ticker(yf_ticker(sym))
+                info = t.fast_info
+                price = round(float(info.last_price), 2)
+                prev = round(float(info.previous_close), 2)
+                chg = round((price - prev) / prev * 100, 2) if prev else 0.0
+                results.append({"symbol": sym, "price": price, "change_pct": chg})
+            except Exception:
+                pass
+        return results
+    data = await run_in_threadpool(_fetch)
+    return {"tickers": data}
+
+
 @api_router.get("/universe/{key}")
 async def get_universe_route(key: str):
     if key not in UNIVERSES:

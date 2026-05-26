@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import math
+import numpy as np
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Tuple
@@ -470,6 +471,43 @@ def run_simulation(
         dd = (peak - pt["equity"]) / peak * 100.0 if peak > 0 else 0.0
         max_dd = max(max_dd, dd)
 
+    # risk metrics from daily equity returns
+    risk_free_daily = 0.065 / 252  # 6.5% Indian risk-free rate
+    daily_returns = []
+    for i in range(1, len(equity_curve)):
+        prev = equity_curve[i - 1]["equity"]
+        curr = equity_curve[i]["equity"]
+        if prev > 0:
+            daily_returns.append((curr - prev) / prev)
+    if len(daily_returns) > 1:
+        arr = np.array(daily_returns)
+        mean_r = arr.mean()
+        std_r = arr.std()
+        sharpe = float((mean_r - risk_free_daily) / std_r * np.sqrt(252)) if std_r > 0 else 0.0
+        downside = arr[arr < risk_free_daily]
+        down_std = downside.std() if len(downside) > 1 else 0.0
+        sortino = float((mean_r - risk_free_daily) / down_std * np.sqrt(252)) if down_std > 0 else 0.0
+        calmar = float(return_pct / max_dd) if max_dd > 0 else 0.0
+    else:
+        sharpe = sortino = calmar = 0.0
+
+    # Nifty 50 benchmark curve for same period
+    benchmark_curve = []
+    try:
+        if sim_dates:
+            bench_start = sim_dates[0] - timedelta(days=1)
+            bench_end = sim_dates[-1] + timedelta(days=1)
+            nsei = yf.download("^NSEI", start=bench_start.strftime("%Y-%m-%d"),
+                               end=bench_end.strftime("%Y-%m-%d"), progress=False, auto_adjust=True)
+            if not nsei.empty:
+                closes = nsei["Close"].dropna()
+                base = float(closes.iloc[0])
+                for dt, val in closes.items():
+                    dt_str = dt.strftime("%Y-%m-%d") if hasattr(dt, "strftime") else str(dt)[:10]
+                    benchmark_curve.append({"date": dt_str, "value": round(float(val) / base * float(capital), 2)})
+    except Exception:
+        benchmark_curve = []
+
     trades_out = []
     for t in closed_trades + list(open_trades.values()):
         trades_out.append(
@@ -517,6 +555,9 @@ def run_simulation(
             "losses": closed_count - len(wins),
             "avg_holding_days": round(avg_holding, 2),
             "max_drawdown_pct": round(max_dd, 2),
+            "sharpe_ratio": round(sharpe, 2),
+            "sortino_ratio": round(sortino, 2),
+            "calmar_ratio": round(calmar, 2),
             "exits_target": reason_counts.get("target", 0),
             "exits_stoploss": reason_counts.get("stoploss", 0),
             "exits_time": reason_counts.get("time", 0),
@@ -547,6 +588,7 @@ def run_simulation(
         },
         "sim_start": sim_dates[0].strftime("%Y-%m-%d") if sim_dates else None,
         "sim_end": sim_dates[-1].strftime("%Y-%m-%d") if sim_dates else None,
+        "benchmark_curve": benchmark_curve,
     }
 
 
