@@ -38,17 +38,17 @@ function Band({ items, speed = "40s", label, live, lastUpdated }) {
     <div className="overflow-hidden relative flex items-center">
       {/* Label */}
       <div className="absolute left-0 top-0 bottom-0 z-20 flex items-center">
-        <div className="bg-[#FBBF24] text-black text-[9px] font-black uppercase tracking-widest px-2 py-0.5 h-full flex items-center">
+        <div className="bg-[#FBBF24] text-black text-[9px] font-black uppercase tracking-widest h-full flex items-center justify-center w-14 shrink-0">
           {label}
         </div>
       </div>
 
       {/* Fade edges */}
-      <div className="absolute left-16 top-0 bottom-0 w-8 z-10 bg-gradient-to-r from-black to-transparent pointer-events-none" />
+      <div className="absolute left-14 top-0 bottom-0 w-8 z-10 bg-gradient-to-r from-black to-transparent pointer-events-none" />
       <div className="absolute right-24 top-0 bottom-0 w-8 z-10 bg-gradient-to-l from-black to-transparent pointer-events-none" />
 
       {/* Scrolling items */}
-      <div className="pl-16 flex gap-0 ticker-scroll" style={{ animationDuration: speed }}>
+      <div className="pl-14 flex gap-0 ticker-scroll" style={{ animationDuration: speed }}>
         {doubled.map((t, i) => (
           <div key={i} className="flex items-center gap-2 px-4 py-1.5 border-r border-white/5 shrink-0">
             <span className="text-[11px] font-mono font-bold text-white tracking-wider">{t.symbol}</span>
