@@ -105,8 +105,8 @@ export default function Simulator() {
 
       {/* Tagline banner */}
       <div className="border-b border-white/5 bg-[#050505]/60">
-        <div className="max-w-[1600px] mx-auto px-6 md:px-8 py-4">
-          <p className="text-xs text-neutral-500 leading-relaxed max-w-3xl">
+        <div className="max-w-[1600px] mx-auto px-6 md:px-8 py-5">
+          <p className="text-sm text-neutral-400 leading-relaxed">
             <Link to="/about" className="text-[#00C896] hover:underline font-semibold">Signal Forge</Link>
             {" "}is a personal trading lab built by{" "}
             <Link to="/about" className="text-neutral-300 hover:text-[#00C896] transition-colors">Veera Reddy Vallela</Link>
