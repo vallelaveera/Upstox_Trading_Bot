@@ -73,7 +73,11 @@ const EDUCATION = [
   { degree: "B.Tech., Information Technology", school: "JNTU University", year: "2012" },
 ];
 
-const LANGUAGES = ["English — Fluent", "German — Intermediate", "Hindi — Intermediate"];
+const LANGUAGES = [
+  { label: "English", level: "Fluent", flag: "https://flagcdn.com/w40/gb.png" },
+  { label: "German", level: "Intermediate", flag: "https://flagcdn.com/w40/de.png" },
+  { label: "Hindi", level: "Intermediate", flag: "https://flagcdn.com/w40/in.png" },
+];
 
 export default function About() {
   return (
@@ -243,11 +247,17 @@ export default function About() {
           </section>
           <section>
             <SectionHeading>Languages</SectionHeading>
-            <div className="mt-4 space-y-2">
+            <div className="mt-4 space-y-3">
               {LANGUAGES.map((l) => (
-                <p key={l} className="text-sm text-neutral-300 pl-5 border-l border-white/10">
-                  {l}
-                </p>
+                <div key={l.label} className="flex items-center gap-3">
+                  <img
+                    src={l.flag}
+                    alt={l.label}
+                    className="h-5 w-7 rounded-sm object-cover shrink-0"
+                  />
+                  <span className="text-sm text-white font-medium">{l.label}</span>
+                  <span className="text-xs text-neutral-500">{l.level}</span>
+                </div>
               ))}
             </div>
           </section>
