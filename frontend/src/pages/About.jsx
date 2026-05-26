@@ -15,8 +15,7 @@ const EXPERIENCE = [
   {
     title: "AI/Data Product Owner",
     company: "Matchory GmbH",
-    initial: "M",
-    color: "#4F46E5",
+    logo: "/matchory.png",
     location: "Heilbronn, Germany",
     period: "03/2025 – Present",
     bullets: [
@@ -30,8 +29,7 @@ const EXPERIENCE = [
   {
     title: "Data Product Owner",
     company: "7Q1 — AI Based Supplier Search Engine",
-    initial: "7",
-    color: "#00C896",
+    logo: "/7q1.jpg",
     location: "Stuttgart, Germany",
     period: "05/2020 – 03/2025",
     bullets: [
@@ -45,8 +43,7 @@ const EXPERIENCE = [
   {
     title: "Data Engineer & 1st Employee",
     company: "Scoutbee GmbH",
-    initial: "S",
-    color: "#F59E0B",
+    logo: "/scoutbee.png",
     location: "Würzburg, Germany",
     period: "11/2016 – 03/2020",
     bullets: [
@@ -60,8 +57,7 @@ const EXPERIENCE = [
   {
     title: "Intern & Master's Thesis",
     company: "Bosch Power Tools",
-    initial: "B",
-    color: "#EF4444",
+    logo: "/bosch.png",
     location: "",
     period: "09/2015 – 09/2016",
     bullets: [
@@ -205,12 +201,11 @@ export default function About() {
               <div key={job.title + job.company} className="relative pl-5 border-l border-white/10">
                 <div className="absolute -left-[5px] top-1.5 h-2.5 w-2.5 rounded-full bg-[#00C896]" />
                 <div className="flex items-center gap-3 flex-wrap">
-                  <div
-                    className="h-8 w-8 rounded-lg flex items-center justify-center text-white text-sm font-bold shrink-0"
-                    style={{ backgroundColor: job.color }}
-                  >
-                    {job.initial}
-                  </div>
+                  <img
+                    src={job.logo}
+                    alt={job.company}
+                    className="h-8 w-8 rounded-lg object-contain bg-white p-1 shrink-0"
+                  />
                   <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
                     <span className="font-display font-bold text-white text-sm">{job.title}</span>
                     <span className="text-[#00C896] text-xs font-semibold">{job.company}</span>
