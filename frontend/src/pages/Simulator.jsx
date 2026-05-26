@@ -62,9 +62,9 @@ export default function Simulator() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white bg-grid bg-noise">
+    <div className="min-h-screen bg-[#111111] text-white bg-grid bg-noise">
       {/* Header */}
-      <header className="border-b border-white/5 sticky top-0 z-30 backdrop-blur-md bg-[#0a0a0a]/80">
+      <header className="border-b border-white/5 sticky top-0 z-30 backdrop-blur-md bg-[#111111]/80">
         <div className="max-w-[1600px] mx-auto px-6 md:px-8 py-5 flex items-center justify-between gap-4">
           <Link to="/about" className="flex items-center gap-3 group">
             <img src="/logo.svg" alt="Signal Forge" className="h-10 w-10" />
@@ -104,7 +104,7 @@ export default function Simulator() {
       </header>
 
       {/* Tagline banner */}
-      <div className="border-b border-white/5 bg-[#0a0a0a]/60">
+      <div className="border-b border-white/5 bg-[#111111]/60">
         <div className="max-w-[1600px] mx-auto px-6 md:px-8 py-5">
           <p className="text-sm text-neutral-200 leading-relaxed">
             <Link to="/about" className="text-[#00C896] hover:underline font-semibold">Signal Forge</Link>

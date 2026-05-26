@@ -86,9 +86,9 @@ const LANGUAGES = [
 
 export default function About() {
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white bg-grid bg-noise">
+    <div className="min-h-screen bg-[#111111] text-white bg-grid bg-noise">
       {/* Header */}
-      <header className="border-b border-white/5 sticky top-0 z-30 backdrop-blur-md bg-[#0a0a0a]/80">
+      <header className="border-b border-white/5 sticky top-0 z-30 backdrop-blur-md bg-[#111111]/80">
         <div className="max-w-[1600px] mx-auto px-6 md:px-8 py-5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <img src="/logo.svg" alt="Signal Forge" className="h-10 w-10" />
@@ -272,7 +272,7 @@ export default function About() {
         {/* CV viewer */}
         <section>
           <SectionHeading>Curriculum Vitae</SectionHeading>
-          <div className="mt-4 border border-white/10 rounded-xl overflow-hidden bg-[#0a0a0a]">
+          <div className="mt-4 border border-white/10 rounded-xl overflow-hidden bg-[#111111]">
             <iframe
               src="/cv.pdf"
               title="Veera Reddy Vallela — CV"
