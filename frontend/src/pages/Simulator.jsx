@@ -66,11 +66,11 @@ export default function Simulator() {
       {/* Header */}
       <header className="border-b border-white/5 sticky top-0 z-30 backdrop-blur-md bg-[#050505]/80">
         <div className="max-w-[1600px] mx-auto px-6 md:px-8 py-5 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+          <Link to="/about" className="flex items-center gap-3 group">
             <img src="/logo.svg" alt="Signal Forge" className="h-10 w-10" />
             <div>
               <h1
-                className="font-display text-xl md:text-2xl font-bold tracking-tight leading-none"
+                className="font-display text-xl md:text-2xl font-bold tracking-tight leading-none group-hover:text-[#00C896] transition-colors"
                 data-testid="app-title"
               >
                 Signal <span className="text-[#00C896]">Forge</span>
@@ -79,7 +79,7 @@ export default function Simulator() {
                 Real Time Simulator &amp; Trading Bot
               </p>
             </div>
-          </div>
+          </Link>
           <div className="hidden md:flex items-center gap-3 text-xs text-neutral-400">
             <span className="pulse-dot inline-block h-1.5 w-1.5 rounded-full bg-[#00E676]" />
             <span className="font-mono uppercase tracking-wider">Yahoo Finance · Live data</span>
@@ -102,6 +102,21 @@ export default function Simulator() {
           </div>
         </div>
       </header>
+
+      {/* Tagline banner */}
+      <div className="border-b border-white/5 bg-[#050505]/60">
+        <div className="max-w-[1600px] mx-auto px-6 md:px-8 py-4">
+          <p className="text-xs text-neutral-500 leading-relaxed max-w-3xl">
+            <Link to="/about" className="text-[#00C896] hover:underline font-semibold">Signal Forge</Link>
+            {" "}is a personal trading lab built by{" "}
+            <Link to="/about" className="text-neutral-300 hover:text-[#00C896] transition-colors">Veera Reddy Vallela</Link>
+            {" "}— an AI & data product builder with 8+ years of turning complex data into real-world products.
+            Born out of curiosity and a passion for markets, it combines systematic backtesting, live Upstox execution,
+            and AI-powered research into a single platform for trading Indian equities.
+            No hedge fund, no team — just data, code, and obsession.
+          </p>
+        </div>
+      </div>
 
       <Tabs value={tab} onValueChange={setTab} className="max-w-[1600px] mx-auto p-4 md:p-8">
         <TabsList
