@@ -83,6 +83,11 @@ export default function Simulator() {
           <div className="hidden md:flex items-center gap-3 text-xs text-neutral-400">
             <span className="pulse-dot inline-block h-1.5 w-1.5 rounded-full bg-[#00E676]" />
             <span className="font-mono uppercase tracking-wider">Yahoo Finance · Live data</span>
+            <Link to="/about">
+              <Button variant="outline" className="border-white/20 text-white hover:bg-white/10 font-semibold tracking-wide">
+                About
+              </Button>
+            </Link>
             <Link to="/chat">
               <Button variant="outline" className="border-white/20 text-white hover:bg-white/10 font-semibold tracking-wide">
                 AI Research

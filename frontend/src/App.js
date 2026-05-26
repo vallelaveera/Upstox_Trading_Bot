@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import Simulator from "@/pages/Simulator";
 import LiveTrading from "@/pages/LiveTrading";
 import Chat from "@/pages/Chat";
+import About from "@/pages/About";
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
           <Route path="/" element={<Simulator />} />
           <Route path="/live" element={<LiveTrading />} />
           <Route path="/chat" element={<Chat />} />
+          <Route path="/about" element={<About />} />
         </Routes>
       </BrowserRouter>
       <Toaster
