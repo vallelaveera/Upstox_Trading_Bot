@@ -31,10 +31,14 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 db = None
+_mongo_client = None
 _mongo_url = os.environ.get("MONGO_URL")
 if _mongo_url:
-    _mongo_client = AsyncIOMotorClient(_mongo_url)
-    db = _mongo_client[os.environ.get("DB_NAME", "signalforge")]
+    try:
+        _mongo_client = AsyncIOMotorClient(_mongo_url)
+        db = _mongo_client[os.environ.get("DB_NAME", "signalforge")]
+    except Exception as e:
+        logger.error(f"Failed to initialize MongoDB client from MONGO_URL: {e}")
 else:
     logger.warning("MONGO_URL not set — simulation history will not be persisted")
 
@@ -1202,7 +1206,8 @@ app.add_middleware(
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
-    client.close()
+    if _mongo_client:
+        _mongo_client.close()
 
 
 @app.on_event("startup")
